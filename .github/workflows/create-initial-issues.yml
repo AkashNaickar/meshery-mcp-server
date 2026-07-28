@@ -1,0 +1,747 @@
+name: Create Initial Issues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issue 1: Repository Scaffolding and Project Setup"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted,good first issue" \
+            --title "Repository Scaffolding and Project Setup" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+The \`meshery-mcp-server\` repository exists but contains no Go source code, module definition, or project structure. There is no runnable artifact.
+
+## Desired Behavior
+
+A complete, idiomatic Go project scaffold that gives contributors a clear starting point for implementing the MCP server.
+
+## Implementation
+
+- Initialize \`go.mod\` for module \`github.com/meshery-extensions/meshery-mcp-server\`
+- Create top-level directory layout:
+  - \`cmd/meshery-mcp-server/\` — entrypoint
+  - \`internal/meshery/\` — Meshery API client
+  - \`internal/tools/\` — MCP tool implementations
+  - \`internal/resources/\` — MCP resource implementations
+  - \`internal/prompts/\` — MCP prompt implementations
+  - \`internal/config/\` — configuration loading
+- Add \`.golangci.yml\` lint configuration aligned with Meshery project standards
+- Add \`Makefile\` with targets: \`build\`, \`test\`, \`lint\`, \`run\`, \`docker-build\`
+- Add \`Dockerfile\` for multi-stage build
+- Add \`.github/workflows/build-and-test.yml\` for CI on every PR
+- Populate \`README.md\` with project overview, architecture diagram, and quick-start instructions
+
+## Acceptance Tests
+
+- \`make build\` produces a runnable \`meshery-mcp-server\` binary
+- \`make lint\` passes with zero violations
+- \`make test\` executes and passes (initially zero test files is acceptable)
+- PR CI workflow triggers on pull requests and succeeds
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Build and Release Strategy](https://docs.meshery.io/project/contributing/build-and-release)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 2: Implement MCP Protocol Server Foundation"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "Implement MCP Protocol Server Foundation (stdio + SSE transports)" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+No MCP (Model Context Protocol) server implementation exists. AI assistants cannot connect to or interact with Meshery.
+
+## Desired Behavior
+
+A working MCP server that speaks the Model Context Protocol, exposing Meshery capabilities to AI clients (Claude Desktop, VS Code Copilot, Cursor, etc.).
+
+## Implementation
+
+- Add dependency on the MCP Go SDK (e.g., \`github.com/mark3labs/mcp-go\` or the official \`github.com/modelcontextprotocol/go-sdk\`)
+- Implement \`cmd/meshery-mcp-server/main.go\` that:
+  - Parses CLI flags / config for transport mode
+  - Creates and registers all tools, resources, and prompts
+  - Starts the server
+- Support **stdio transport** (default, for local AI client integrations)
+- Support **SSE/HTTP transport** (for remote/web-based AI client integrations)
+- Implement graceful shutdown on SIGINT/SIGTERM
+- Add structured logging (JSON mode for production, text for dev)
+- Emit server capabilities advertisement on startup (tool list, resource list, prompt list)
+- Add unit tests for server initialization and transport selection
+
+## Acceptance Tests
+
+- Running \`meshery-mcp-server --transport stdio\` starts the server and responds to MCP \`initialize\` requests
+- Running \`meshery-mcp-server --transport sse --port 8080\` starts an HTTP server accepting SSE connections
+- Server returns a correct \`tools/list\` response listing all registered tools
+- Server shuts down cleanly on SIGINT
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [MCP Specification](https://spec.modelcontextprotocol.io)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 3: Meshery API Client Integration"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "Build Meshery REST/GraphQL API Client for MCP Server" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+The MCP server has no way to communicate with a running Meshery instance. There is no API client layer.
+
+## Desired Behavior
+
+A well-structured Go client package that wraps Meshery's REST and GraphQL APIs and is used by all MCP tool implementations.
+
+## Implementation
+
+- Create \`internal/meshery/client.go\` with a \`Client\` struct
+- Support configuration via:
+  - \`MESHERY_SERVER_URL\` environment variable (default: \`http://localhost:9081\`)
+  - \`MESHERY_API_TOKEN\` environment variable (provider token)
+  - Config file path flag
+- Implement a base HTTP client with:
+  - Configurable timeout and retry logic
+  - Automatic \`Authorization\` header injection
+  - JSON request/response serialization
+  - Error mapping (4xx/5xx → typed Go errors)
+- Implement thin wrapper methods for each Meshery API domain used by tools:
+  - Environments, Workspaces
+  - Designs (patterns)
+  - Kubernetes connections
+  - Component/model registry
+  - Performance test management
+- Add connection health-check method (\`GET /api/system/version\`)
+- Add unit tests using \`httptest\` for all client methods
+
+## Acceptance Tests
+
+- \`client.Ping()\` returns version info for a reachable Meshery instance
+- \`client.Ping()\` returns a descriptive error when Meshery is unreachable
+- All HTTP calls include the correct \`Authorization\` header
+- Client respects the configured timeout and does not hang indefinitely
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery API Docs](https://docs.meshery.io/extensibility/api)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 4: MCP Tools — Environment and Workspace Management"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Tools: Environment and Workspace Management" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants have no way to list, create, or switch between Meshery environments and workspaces.
+
+## Desired Behavior
+
+AI agents (e.g., Claude) can manage Meshery environments and workspaces via natural-language prompts such as:
+- _"List all my Meshery environments"_
+- _"Create a new environment called staging"_
+- _"Switch to the production workspace"_
+
+## Implementation
+
+Implement the following MCP tools in \`internal/tools/environments.go\` and \`internal/tools/workspaces.go\`:
+
+| Tool Name | Description | Key Inputs | Key Outputs |
+|---|---|---|---|
+| \`list_environments\` | List all available environments | — | Array of environment objects |
+| \`get_environment\` | Get details of a specific environment | \`environment_id\` | Environment details |
+| \`create_environment\` | Create a new Meshery environment | \`name\`, \`description\` | Created environment ID |
+| \`list_workspaces\` | List all workspaces | — | Array of workspace objects |
+| \`switch_workspace\` | Set active workspace | \`workspace_id\` | Confirmation |
+
+Each tool must:
+- Define a JSON Schema for its input parameters
+- Return structured JSON output
+- Return human-readable error messages on failure
+- Be registered with the MCP server on startup
+
+## Acceptance Tests
+
+- \`list_environments\` returns a non-empty list when environments exist in Meshery
+- \`create_environment\` creates an environment visible in the Meshery UI
+- \`switch_workspace\` changes the active workspace and is reflected in subsequent tool calls
+- All tools return structured errors when the Meshery API is unreachable
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Environments](https://docs.meshery.io/concepts/logical/environments)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 5: MCP Tools — Design and Pattern Operations"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Tools: Design and Infrastructure Pattern Operations" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants cannot browse, create, deploy, or undeploy Meshery infrastructure designs and patterns.
+
+## Desired Behavior
+
+AI agents can perform full design lifecycle operations through natural-language commands such as:
+- _"List all my Meshery designs"_
+- _"Deploy the bookinfo design to the production cluster"_
+- _"Show me the YAML for my gateway design"_
+- _"Undeploy the staging canary pattern"_
+
+## Implementation
+
+Implement the following MCP tools in \`internal/tools/designs.go\`:
+
+| Tool Name | Description | Key Inputs | Key Outputs |
+|---|---|---|---|
+| \`list_designs\` | List all designs in the workspace | \`page\`, \`page_size\`, \`search\` | Array of design summaries |
+| \`get_design\` | Retrieve a design by ID | \`design_id\` | Full design object (name, components, YAML) |
+| \`create_design\` | Create a new design from YAML/JSON | \`name\`, \`design_yaml\` | Created design ID |
+| \`deploy_design\` | Deploy a design to a Kubernetes cluster | \`design_id\`, \`cluster_id\` | Deployment status |
+| \`undeploy_design\` | Undeploy a design from a cluster | \`design_id\`, \`cluster_id\` | Confirmation |
+| \`delete_design\` | Permanently delete a design | \`design_id\` | Confirmation |
+| \`export_design\` | Export design as OCI artifact or YAML | \`design_id\`, \`format\` | Export URL or YAML content |
+
+Each tool must include JSON Schema input validation, structured output, and descriptive errors.
+
+## Acceptance Tests
+
+- \`list_designs\` returns all designs from the active workspace
+- \`deploy_design\` triggers a deployment visible in Meshery's UI and returns a live status
+- \`undeploy_design\` removes deployed resources from the cluster
+- \`get_design\` returns the complete component graph for a design
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Designs](https://docs.meshery.io/concepts/logical/designs)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 6: MCP Tools — Kubernetes Cluster Connection Management"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Tools: Kubernetes Cluster Connection Management" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants cannot list, connect, or query the health of Kubernetes clusters managed by Meshery.
+
+## Desired Behavior
+
+AI agents can manage cluster connections and inspect cluster state through natural-language commands like:
+- _"List all Kubernetes clusters connected to Meshery"_
+- _"What is the status of my production cluster?"_
+- _"Connect this kubeconfig to Meshery"_
+- _"List all pods in namespace default on cluster dev-cluster"_
+
+## Implementation
+
+Implement the following MCP tools in \`internal/tools/kubernetes.go\`:
+
+| Tool Name | Description | Key Inputs | Key Outputs |
+|---|---|---|---|
+| \`list_clusters\` | List all connected Kubernetes clusters | — | Array of cluster connection summaries |
+| \`get_cluster\` | Get details for a specific cluster | \`cluster_id\` | Cluster name, version, node count, health status |
+| \`connect_cluster\` | Register a new cluster via kubeconfig | \`kubeconfig_base64\`, \`context_name\` | Created cluster connection ID |
+| \`disconnect_cluster\` | Remove a cluster connection | \`cluster_id\` | Confirmation |
+| \`get_cluster_resources\` | List Kubernetes resources on a cluster | \`cluster_id\`, \`resource_kind\`, \`namespace\` | Array of resource summaries |
+| \`get_cluster_nodes\` | List cluster nodes and their status | \`cluster_id\` | Node list with resource capacity |
+
+## Acceptance Tests
+
+- \`list_clusters\` returns all clusters currently registered in Meshery
+- \`get_cluster\` returns version info and node count for a real cluster
+- \`connect_cluster\` registers a new cluster and it appears in \`list_clusters\` output
+- \`get_cluster_resources\` returns Pods from the \`kube-system\` namespace
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Kubernetes Support](https://docs.meshery.io/concepts/architecture/operator)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 7: MCP Tools — Component and Model Registry"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Tools: Component and Model Registry Queries" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants cannot search, browse, or retrieve component and model definitions from Meshery's registry.
+
+## Desired Behavior
+
+AI agents can query Meshery's comprehensive component registry to understand available infrastructure building blocks:
+- _"What Istio components are available in Meshery?"_
+- _"Show me the schema for a Kubernetes Deployment component"_
+- _"List all models for AWS infrastructure"_
+
+## Implementation
+
+Implement the following MCP tools in \`internal/tools/registry.go\`:
+
+| Tool Name | Description | Key Inputs | Key Outputs |
+|---|---|---|---|
+| \`list_models\` | List registered infrastructure models | \`search\`, \`page\`, \`page_size\` | Array of model summaries (name, version, category) |
+| \`get_model\` | Get full model details | \`model_id\` | Model definition including all components |
+| \`search_components\` | Search components across all models | \`query\`, \`kind\`, \`model\` | Array of matching component definitions |
+| \`get_component\` | Get detailed component schema | \`component_id\` | Full JSON Schema for the component |
+| \`list_relationships\` | List available component relationship types | \`model\` | Array of relationship definitions |
+
+## Acceptance Tests
+
+- \`list_models\` returns Kubernetes, Istio, and other registered models
+- \`search_components\` returns \`Deployment\` when queried from the \`kubernetes\` model
+- \`get_component\` returns the full JSON Schema for the component
+- \`list_relationships\` returns edge/hierarchical relationship types for a given model
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Models](https://docs.meshery.io/concepts/logical/models)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 8: MCP Resources — Live Infrastructure Topology"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Resources: Expose Live Infrastructure Topology via MeshSync" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants cannot read the live state of infrastructure managed by Meshery. There are no MCP resources exposing cluster topology.
+
+## Desired Behavior
+
+AI agents can read real-time infrastructure topology data as MCP resources — enabling AI-driven analysis, troubleshooting, and optimization without explicitly calling tools.
+
+## Implementation
+
+Implement the following MCP resources in \`internal/resources/topology.go\`:
+
+| Resource URI Template | Description |
+|---|---|
+| \`meshery://clusters/{cluster_id}/topology\` | Full topology graph for a cluster (nodes, workloads, services, relationships) |
+| \`meshery://clusters/{cluster_id}/namespaces/{namespace}/workloads\` | All workloads in a namespace |
+| \`meshery://clusters/{cluster_id}/events\` | Recent cluster events (warnings, errors) |
+| \`meshery://designs/{design_id}/topology\` | Component graph for a Meshery design |
+
+Each resource must:
+- Return JSON-serialized topology data from MeshSync via the Meshery API
+- Be registered with the MCP server and appear in \`resources/list\` responses
+- Support resource subscriptions (MCP resource updated notifications) when data changes
+- Include MIME type \`application/json\`
+
+## Acceptance Tests
+
+- \`resources/list\` returns topology resource URI templates
+- Reading \`meshery://clusters/{id}/topology\` returns a live graph with nodes and edges
+- Reading a non-existent cluster resource returns a descriptive \`ResourceNotFound\` error
+- Resource content reflects the current state of the cluster (validated against Meshery UI)
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [MeshSync](https://docs.meshery.io/concepts/architecture/meshsync)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 9: MCP Prompts — Guided Infrastructure Workflow Templates"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Prompts: Guided Infrastructure Workflow Templates" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants interacting with Meshery have no guided workflow templates (MCP prompts). Each interaction starts from scratch, leading to inconsistent and verbose prompting.
+
+## Desired Behavior
+
+A set of MCP prompt templates that AI clients can invoke to initiate common Meshery workflows with structured guidance. Examples:
+- \`meshery_deploy_app\` — guided deployment of an application to a cluster
+- \`meshery_debug_cluster\` — guided cluster health investigation
+- \`meshery_design_review\` — guided review of an infrastructure design for best practices
+- \`meshery_performance_test\` — guided performance test configuration and execution
+
+## Implementation
+
+Implement the following MCP prompts in \`internal/prompts/workflows.go\`:
+
+| Prompt Name | Description | Arguments |
+|---|---|---|
+| \`deploy_application\` | Step-by-step app deployment to a target cluster | \`design_id\`, \`cluster_id\`, \`namespace\` |
+| \`debug_cluster\` | Systematic cluster health investigation | \`cluster_id\`, \`symptoms\` |
+| \`review_design\` | Best-practice review of a Meshery design | \`design_id\`, \`review_focus\` (security/cost/performance) |
+| \`compare_designs\` | Diff and compare two design versions | \`design_id_a\`, \`design_id_b\` |
+| \`generate_design\` | Generate a Meshery design from natural-language description | \`description\`, \`target_cluster_id\` |
+| \`run_performance_test\` | Configure and run a performance test | \`endpoint_url\`, \`duration\`, \`rps\` |
+
+Each prompt must:
+- Define typed \`arguments\` with JSON Schema
+- Produce a structured \`messages\` array that primes the AI with context from live Meshery data
+- Be registered with the MCP server and visible in \`prompts/list\`
+
+## Acceptance Tests
+
+- \`prompts/list\` returns all defined workflow prompts
+- \`deploy_application\` prompt generates a message sequence that includes the design's component list and cluster info
+- \`debug_cluster\` prompt includes recent cluster events and node health in its context messages
+- All prompts handle missing/invalid arguments gracefully
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [MCP Prompts Specification](https://spec.modelcontextprotocol.io/specification/server/prompts/)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 10: Authentication and Multi-Instance Configuration"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "Authentication, Configuration, and Multi-Instance Support" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+There is no configuration system for the MCP server. It cannot authenticate with Meshery or support multiple Meshery instances.
+
+## Desired Behavior
+
+A flexible configuration system that supports:
+- API key / provider token authentication
+- Multiple named Meshery instances (e.g., \`dev\`, \`staging\`, \`production\`)
+- Config file (\`~/.meshery/mcp-config.yaml\`) and environment variable overrides
+- Context switching between instances
+
+## Implementation
+
+- Define a YAML config schema in \`internal/config/config.go\`:
+  ```yaml
+  current-context: dev
+  contexts:
+    dev:
+      server: http://localhost:9081
+      token: <meshery-api-token>
+    staging:
+      server: https://meshery.staging.example.com
+      token: <meshery-api-token>
+  ```
+- Load config from (in priority order): CLI flag → environment variable → config file
+- Implement MCP tool \`switch_context\` to change the active Meshery instance at runtime
+- Implement MCP tool \`list_contexts\` to list configured instances and show which is active
+- Validate config on startup and emit clear error if the active context is unreachable
+- Support \`MESHERY_SERVER_URL\` and \`MESHERY_API_TOKEN\` env vars as a zero-config option
+- Mask token values in logs (never log full tokens)
+
+## Acceptance Tests
+
+- Server starts with a valid config file and connects to the specified Meshery instance
+- \`switch_context\` changes the active context and subsequent tool calls use the new instance
+- Missing config file triggers a friendly setup prompt, not a panic
+- Token values are never written to log output
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [mesheryctl Configuration](https://docs.meshery.io/reference/mesheryctl/system/context)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 11: MCP Tools — Performance Testing via Nighthawk"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "MCP Tools: Performance Testing via Nighthawk Integration" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+AI assistants cannot initiate, monitor, or retrieve results from Meshery's Nighthawk-based performance testing capabilities.
+
+## Desired Behavior
+
+AI agents can drive full performance test workflows through natural-language commands like:
+- _"Run a 60-second load test against my bookinfo productpage at 100 RPS"_
+- _"Show me the latency percentiles from my last performance test"_
+- _"Compare the p99 latency before and after my latest canary deployment"_
+
+## Implementation
+
+Implement the following MCP tools in \`internal/tools/performance.go\`:
+
+| Tool Name | Description | Key Inputs | Key Outputs |
+|---|---|---|---|
+| \`run_performance_test\` | Initiate a performance test via Nighthawk | \`name\`, \`url\`, \`duration\`, \`rps\`, \`concurrent_requests\` | Test run ID, status |
+| \`get_performance_test\` | Get status/results of a test run | \`test_id\` | Status, latency percentiles, throughput, error rate |
+| \`list_performance_tests\` | List past performance test results | \`page\`, \`page_size\` | Array of test summaries |
+| \`compare_performance_tests\` | Diff two test results | \`test_id_a\`, \`test_id_b\` | Delta table (latency, errors, throughput) |
+| \`delete_performance_test\` | Delete a test result | \`test_id\` | Confirmation |
+
+## Acceptance Tests
+
+- \`run_performance_test\` starts a Nighthawk test and returns a valid test ID
+- \`get_performance_test\` returns \`running\` while the test is in progress, then \`completed\` with results
+- Results include p50, p90, p99, p99.9 latency values and total requests count
+- \`compare_performance_tests\` produces a meaningful delta report for two different test runs
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Performance Management](https://docs.meshery.io/guides/performance-management)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 12: CI/CD Pipeline and Multi-Platform Release Automation"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted" \
+            --title "CI/CD Pipeline and Multi-Platform Release Automation" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+The \`meshery-mcp-server\` repository has no CI pipeline or release automation. There is no automated build, test, lint, or artifact publishing.
+
+## Desired Behavior
+
+A complete CI/CD pipeline that:
+- Builds and tests every pull request
+- Publishes multi-platform binaries and a Docker image on every release tag
+- Keeps dependencies up to date automatically
+
+## Implementation
+
+### PR CI Workflow (\`.github/workflows/build-and-test.yml\`)
+- Trigger: \`pull_request\` to \`main\`
+- Steps: checkout → setup Go → \`go mod tidy\` verify → \`golangci-lint\` → \`go test ./...\` → \`go build\`
+- Matrix: Go versions (current stable + previous)
+
+### Release Workflow (\`.github/workflows/release.yml\`)
+- Trigger: \`push\` tag matching \`v*.*.*\`
+- Use [GoReleaser](https://goreleaser.com/) with \`.goreleaser.yml\`:
+  - Multi-platform binaries: \`linux/amd64\`, \`linux/arm64\`, \`darwin/amd64\`, \`darwin/arm64\`, \`windows/amd64\`
+  - Docker image published to \`ghcr.io/meshery-extensions/meshery-mcp-server\`
+  - Checksums and signed artifacts
+  - Auto-generated GitHub Release notes via Release Drafter
+
+### Dependency Management
+- Add \`dependabot.yml\` for weekly Go module updates and GitHub Actions updates
+
+### Security Scanning
+- Add CodeQL analysis workflow for Go code
+- Add Gosec or similar SAST tool in CI
+
+## Acceptance Tests
+
+- PRs trigger build-and-test workflow; it passes on a clean codebase
+- Tagging \`v0.1.0\` triggers the release workflow and creates a GitHub Release with binaries for all 5 platforms
+- Docker image is available at \`ghcr.io/meshery-extensions/meshery-mcp-server:v0.1.0\`
+- Dependabot opens a PR within 7 days of a new Go module version being available
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [Meshery Build and Release Strategy](https://docs.meshery.io/project/contributing/build-and-release)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 13: Testing Infrastructure — Unit, Integration, and E2E Tests"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/enhancement,help wanted,good first issue" \
+            --title "Testing Infrastructure: Unit, Integration, and End-to-End Tests" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+The repository has no tests. There is no testing infrastructure, mocking framework setup, or integration test harness.
+
+## Desired Behavior
+
+Comprehensive test coverage across three tiers that runs reliably in CI and locally.
+
+## Implementation
+
+### Unit Tests
+- Use Go's built-in \`testing\` package + \`testify\` assertions
+- Mock the Meshery API client with \`httptest.NewServer\` or an interface mock
+- Test each MCP tool's input validation, output schema, and error handling
+- Target: ≥80% code coverage for \`internal/\` packages
+- Location: \`*_test.go\` files co-located with source
+
+### Integration Tests
+- Tag with \`//go:build integration\`
+- Require a real (or Docker-compose-based) Meshery instance
+- Test the full tool invocation path from MCP request → Meshery API → MCP response
+- Include a \`docker-compose.test.yml\` that spins up Meshery for integration tests
+- Makefile target: \`make test-integration\`
+
+### End-to-End Tests
+- Use the official MCP test client or \`mark3labs/mcp-go\` test utilities
+- Simulate a real AI client connecting over stdio transport
+- Test the complete \`initialize → tools/list → tools/call\` flow
+- Include one E2E test per major tool category
+
+### Test Utilities
+- Create \`internal/testutil/\` package with shared test helpers:
+  - \`MockMesheryServer\` — \`httptest\` server with pre-canned API responses
+  - \`NewTestClient\` — creates a configured Meshery client pointing at the mock
+  - \`AssertMCPToolResult\` — validates an MCP tool call result structure
+
+## Acceptance Tests
+
+- \`make test\` runs all unit tests and passes with zero failures
+- \`make test-integration\` runs against a local Meshery instance and passes
+- CI reports code coverage ≥ 80% for \`internal/\` packages
+- A new contributor can run \`make test\` without any external dependencies
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
+
+      - name: "Issue 14: Documentation — User Guide and AI Client Integration Examples"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --label "kind/documentation,help wanted,good first issue" \
+            --title "Documentation: User Guide, Configuration Reference, and AI Client Integration Examples" \
+            --body "$(cat << 'EOF'
+## Current Behavior
+
+The repository README contains only the organization-level overview. There is no documentation specific to the \`meshery-mcp-server\` — no installation guide, configuration reference, or AI client integration instructions.
+
+## Desired Behavior
+
+Comprehensive documentation that enables a new user to go from zero to a working Meshery MCP integration in under 10 minutes.
+
+## Implementation
+
+### README.md (overhaul)
+- Project overview: what the Meshery MCP Server is and why it matters
+- Architecture diagram showing MCP Server ↔ Meshery ↔ Kubernetes
+- Quick-start: install → configure → connect to Claude Desktop
+- Links to full docs and community
+
+### docs/ directory
+Create the following documents:
+
+**\`docs/installation.md\`**
+- Install via \`go install\`, pre-built binaries, Docker, or Homebrew tap
+- Verify installation: \`meshery-mcp-server --version\`
+
+**\`docs/configuration.md\`**
+- Full config file schema with annotated examples
+- All environment variables (\`MESHERY_SERVER_URL\`, \`MESHERY_API_TOKEN\`, etc.)
+- Multi-instance / multi-context setup
+
+**\`docs/tools-reference.md\`**
+- Auto-generated or manually maintained table of all MCP tools with inputs, outputs, and examples
+
+**\`docs/integrations/\`**
+- \`claude-desktop.md\` — \`claude_desktop_config.json\` snippet and walkthrough
+- \`vscode-copilot.md\` — VS Code \`settings.json\` MCP config snippet
+- \`cursor.md\` — Cursor MCP config snippet
+- \`cline.md\` — Cline extension config snippet
+
+**\`docs/development.md\`**
+- How to build, test, and run locally
+- How to add a new MCP tool / resource / prompt
+- PR and contribution guidelines specific to this repo
+
+## Acceptance Tests
+
+- A user following \`docs/integrations/claude-desktop.md\` can connect Claude Desktop to a local Meshery instance
+- \`docs/tools-reference.md\` lists every tool registered in the server
+- All code snippets in docs are tested and correct
+- README passes a Markdown linter with zero errors
+
+---
+
+### Contributor [Guides](https://docs.meshery.io/project/contributing) and [Handbook](https://layer5.io/community/handbook)
+- 📚 [MCP Documentation](https://modelcontextprotocol.io/docs)
+- 🙋 Questions: [Discussion Forum](https://meshery.io/community#community-forums) and [Community Slack](https://slack.meshery.io)
+EOF
+)"
