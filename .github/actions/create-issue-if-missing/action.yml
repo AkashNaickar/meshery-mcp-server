@@ -39,12 +39,14 @@ runs:
         ISSUE_BODY: ${{ inputs.body }}
         ISSUE_LABELS: ${{ inputs.labels }}
       run: |
-        already_exists=$(gh api --paginate \
+        if ! titles=$(gh api --paginate \
           "repos/${{ github.repository }}/issues?state=all&per_page=100" \
-          --jq '.[].title' \
-          | grep -qxF "$ISSUE_TITLE" && echo yes || echo no)
+          --jq '.[] | select(has("pull_request") | not) | .title'); then
+          echo "Error: Failed to fetch issues to check for duplicates. Failing closed." >&2
+          exit 1
+        fi
 
-        if [ "$already_exists" = "yes" ]; then
+        if echo "$titles" | grep -qxF "$ISSUE_TITLE" > /dev/null; then
           echo "Issue '${ISSUE_TITLE}' already exists — skipping."
           exit 0
         fi
