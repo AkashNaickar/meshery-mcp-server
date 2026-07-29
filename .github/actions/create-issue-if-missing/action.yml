@@ -1,0 +1,61 @@
+name: 'Create Issue If Missing'
+description: 'Idempotently creates a GitHub issue by title, ensuring its labels exist first.'
+inputs:
+  title:
+    description: 'Issue title'
+    required: true
+  labels:
+    description: 'Comma-separated label names (no space required after commas)'
+    required: false
+    default: ''
+  body:
+    description: 'Issue body (markdown)'
+    required: true
+  github-token:
+    description: 'Token used to authenticate the gh CLI'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Ensure labels exist
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        IFS=',' read -ra LABELS <<< "${{ inputs.labels }}"
+        for label in "${LABELS[@]}"; do
+          trimmed=$(echo "$label" | sed 's/^ *//;s/ *$//')
+          [ -z "$trimmed" ] && continue
+          gh label create "$trimmed" --repo "${{ github.repository }}" --color "ededed" --force
+        done
+
+    - name: Create issue if it doesn't already exist
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ISSUE_TITLE: ${{ inputs.title }}
+        ISSUE_BODY: ${{ inputs.body }}
+        ISSUE_LABELS: ${{ inputs.labels }}
+      run: |
+        existing=$(gh issue list --repo "${{ github.repository }}" --state all \
+          --search "\"${ISSUE_TITLE}\" in:title" --json title \
+          --jq "[.[] | select(.title == \"${ISSUE_TITLE}\")] | length")
+
+        if [ "$existing" -gt 0 ]; then
+          echo "Issue '${ISSUE_TITLE}' already exists — skipping."
+          exit 0
+        fi
+
+        label_args=()
+        IFS=',' read -ra LABELS <<< "$ISSUE_LABELS"
+        for label in "${LABELS[@]}"; do
+          trimmed=$(echo "$label" | sed 's/^ *//;s/ *$//')
+          [ -z "$trimmed" ] && continue
+          label_args+=(--label "$trimmed")
+        done
+
+        gh issue create \
+          --repo "${{ github.repository }}" \
+          --title "$ISSUE_TITLE" \
+          "${label_args[@]}" \
+          --body "$ISSUE_BODY"
