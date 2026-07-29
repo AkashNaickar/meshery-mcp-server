@@ -22,13 +22,12 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        existing_labels=$(gh label list --repo "${{ github.repository }}" --limit 100 --json name --jq '.[].name')
         IFS=',' read -ra LABELS <<< "${{ inputs.labels }}"
         for label in "${LABELS[@]}"; do
           trimmed=$(echo "$label" | sed 's/^ *//;s/ *$//')
           [ -z "$trimmed" ] && continue
-          if ! grep -qxF "$trimmed" <<< "$existing_labels"; then
-            gh label create "$trimmed" --repo "${{ github.repository }}" --color "ededed"
+          if ! gh label create "$trimmed" --repo "${{ github.repository }}" --color "ededed" 2>/tmp/label_err.txt; then
+            grep -qi "already exists" /tmp/label_err.txt || { cat /tmp/label_err.txt >&2; exit 1; }
           fi
         done
 
@@ -40,11 +39,12 @@ runs:
         ISSUE_BODY: ${{ inputs.body }}
         ISSUE_LABELS: ${{ inputs.labels }}
       run: |
-        existing=$(gh issue list --repo "${{ github.repository }}" --state all \
-          --search "\"${ISSUE_TITLE}\" in:title" --limit 100 --json title \
-          | jq --arg t "$ISSUE_TITLE" '[.[] | select(.title == $t)] | length')
+        already_exists=$(gh api --paginate \
+          "repos/${{ github.repository }}/issues?state=all&per_page=100" \
+          --jq '.[].title' \
+          | grep -qxF "$ISSUE_TITLE" && echo yes || echo no)
 
-        if [ "$existing" -gt 0 ]; then
+        if [ "$already_exists" = "yes" ]; then
           echo "Issue '${ISSUE_TITLE}' already exists — skipping."
           exit 0
         fi
