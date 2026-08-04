@@ -14,6 +14,8 @@ The **Meshery MCP Server** exposes Meshery's capabilities to AI assistants throu
 
 - MCP server over stdio, built with the [`mcp-go`](https://github.com/mark3labs/mcp-go) SDK.
 - `server_info` tool returning server metadata.
+- `meshery_ping` tool checking connectivity to a Meshery Server.
+- Meshery REST API client (`internal/meshery`) with configurable timeout and retries, `Authorization` header injection, and typed error mapping.
 - Environment-driven configuration: `MESHERY_SERVER_URL` (default `http://localhost:9081`) and `MESHERY_API_TOKEN`.
 
 ### Getting started

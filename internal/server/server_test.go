@@ -17,16 +17,19 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 
+	"github.com/meshery-extensions/meshery-mcp-server/internal/config"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
 
 func TestServerInfoTool(t *testing.T) {
-	s := New()
+	s := New(&config.Config{})
 
 	mcpClient, err := client.NewInProcessClient(s)
 	if err != nil {
@@ -54,8 +57,8 @@ func TestServerInfoTool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list tools: %v", err)
 	}
-	if len(toolsResp.Tools) != 1 {
-		t.Fatalf("expected 1 tool, got %d", len(toolsResp.Tools))
+	if len(toolsResp.Tools) != 2 {
+		t.Fatalf("expected 2 tools, got %d", len(toolsResp.Tools))
 	}
 
 	result, err := mcpClient.CallTool(ctx, mcp.CallToolRequest{
@@ -76,5 +79,55 @@ func TestServerInfoTool(t *testing.T) {
 	expected := fmt.Sprintf("%s %s (commit %s)", version.Name, version.Version, version.CommitSHA)
 	if text.Text != expected {
 		t.Fatalf("expected %q, got %q", expected, text.Text)
+	}
+}
+
+func TestMesheryPingTool(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"build":"v0.8.36"}`))
+	}))
+	defer srv.Close()
+
+	s := New(&config.Config{MeshServerURL: srv.URL})
+
+	mcpClient, err := client.NewInProcessClient(s)
+	if err != nil {
+		t.Fatalf("new in-process client: %v", err)
+	}
+	defer func() {
+		if err := mcpClient.Close(); err != nil {
+			t.Errorf("close in-process client: %v", err)
+		}
+	}()
+
+	ctx := context.Background()
+	_, err = mcpClient.Initialize(ctx, mcp.InitializeRequest{
+		Params: mcp.InitializeParams{
+			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
+			ClientInfo:      mcp.Implementation{Name: "test-client", Version: "0.0.1"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("initialize: %v", err)
+	}
+
+	result, err := mcpClient.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "meshery_ping",
+		},
+	})
+	if err != nil {
+		t.Fatalf("call tool: %v", err)
+	}
+	if len(result.Content) == 0 {
+		t.Fatal("expected content in result")
+	}
+	text, ok := mcp.AsTextContent(result.Content[0])
+	if !ok || text == nil {
+		t.Fatalf("expected text content, got %T", result.Content[0])
+	}
+	if text.Text != "Meshery Server reachable (build v0.8.36)" {
+		t.Errorf("unexpected ping output: %q", text.Text)
 	}
 }

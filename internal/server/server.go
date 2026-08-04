@@ -17,14 +17,18 @@ package server
 import (
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/meshery-extensions/meshery-mcp-server/internal/config"
+	"github.com/meshery-extensions/meshery-mcp-server/internal/meshery"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/tools"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
 
-// New creates an MCP server with all registered tools.
-func New() *server.MCPServer {
+// New creates an MCP server with all registered tools. A Meshery Server client
+// is built from cfg and shared by every tool.
+func New(cfg *config.Config) *server.MCPServer {
 	s := server.NewMCPServer(version.Name, version.Version)
-	tools.Register(s)
+	mc := meshery.New(cfg.MeshServerURL, cfg.MeshAPIToken)
+	tools.Register(s, mc)
 	return s
 }
 
