@@ -39,8 +39,3 @@ jobs:
         run: go vet ./...
       - name: Test
         run: go test --short ./... -race -coverprofile=coverage.txt -covermode=atomic
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.3.0
-        with:
-          files: ./coverage.txt
-          flags: unittests
