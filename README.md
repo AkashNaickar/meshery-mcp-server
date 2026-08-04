@@ -6,7 +6,7 @@
 
 ## Meshery MCP Server
 
-The **Meshery MCP Server** exposes Meshery's capabilities to AI assistants through the [Model Context Protocol](https://modelcontextprotocol.io). It runs as a Go binary that speaks MCP over stdio and connects to a running [Meshery Server](https://meshery.io).
+The **Meshery MCP Server** exposes Meshery's capabilities to AI assistants through the [Model Context Protocol](https://modelcontextprotocol.io). It runs as a Go binary that speaks MCP over stdio and is being prepared to connect to a running [Meshery Server](https://meshery.io).
 
 > **Status: scaffold.** The project is in its early stages. The Go module, MCP server entrypoint (stdio transport), configuration, and CI are in place. Tooling that integrates with the Meshery REST API is being built incrementally.
 

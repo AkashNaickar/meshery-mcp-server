@@ -13,10 +13,14 @@
 # limitations under the License.
 
 GO ?= go
-GOVERSION ?= 1.26.0
 BINARY := meshery-mcp-server
 BIN_DIR := bin
-LDFLAGS := -s -w
+
+GIT_VERSION ?= $(shell git describe --tags --always --dirty)
+GIT_COMMITSHA ?= $(shell git rev-parse --short HEAD)
+LDFLAGS := -s -w \
+	-X 'github.com/meshery-extensions/meshery-mcp-server/internal/version.Version=$(GIT_VERSION)' \
+	-X 'github.com/meshery-extensions/meshery-mcp-server/internal/version.CommitSHA=$(GIT_COMMITSHA)'
 
 .DEFAULT_GOAL := build
 
@@ -39,9 +43,9 @@ test:
 vet:
 	$(GO) vet ./...
 
-## Format the Go source.
+## Format the Go source with gofmt and goimports.
 fmt:
-	gofmt -w ./cmd ./internal
+	golangci-lint fmt
 
 ## Lint the Go source with golangci-lint.
 lint:
@@ -53,7 +57,10 @@ clean:
 
 ## Build the container image.
 docker-build:
-	docker build -t meshery/meshery-mcp-server .
+	docker build \
+		--build-arg GIT_VERSION=$(GIT_VERSION) \
+		--build-arg GIT_COMMITSHA=$(GIT_COMMITSHA) \
+		-t meshery/meshery-mcp-server .
 
 ## Show this help.
 help:
