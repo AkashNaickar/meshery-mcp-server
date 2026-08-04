@@ -52,6 +52,8 @@ default.profraw
 # Generated binaries
 **/bin
 dist/**
+/bin
+/coverage.txt
 
 # IDE
 **/.idea
