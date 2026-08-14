@@ -32,6 +32,7 @@ func Register(s *server.MCPServer) {
 	s.AddTool(serverInfo, serverInfoHandler)
 }
 
+// serverInfoHandler returns metadata about the Meshery MCP server.
 func serverInfoHandler(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return mcp.NewToolResultText(fmt.Sprintf("%s %s (commit %s)", version.Name, version.Version, version.CommitSHA)), nil
 }

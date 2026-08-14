@@ -25,6 +25,8 @@ import (
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
 
+// TestServerInfoTool verifies the server_info tool through the full
+// initialize, list tools, and call tool flow over an in-process client.
 func TestServerInfoTool(t *testing.T) {
 	s := New()
 

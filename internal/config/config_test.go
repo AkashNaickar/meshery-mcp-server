@@ -16,6 +16,8 @@ package config
 
 import "testing"
 
+// TestRedactedURL verifies that RedactedURL strips credentials, query
+// parameters, and fragments from a variety of URL forms.
 func TestRedactedURL(t *testing.T) {
 	tests := []struct {
 		name string
@@ -40,6 +42,8 @@ func TestRedactedURL(t *testing.T) {
 	}
 }
 
+// TestLoadDefaults verifies that Load applies the default Meshery Server URL
+// when environment variables are unset.
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("MESHERY_SERVER_URL", "")
 	t.Setenv("MESHERY_API_TOKEN", "")

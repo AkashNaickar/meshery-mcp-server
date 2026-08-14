@@ -56,6 +56,8 @@ func (c *Config) RedactedURL() string {
 	return u.String()
 }
 
+// envOr returns the value of the environment variable key, or fallback when
+// the variable is unset or empty.
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
