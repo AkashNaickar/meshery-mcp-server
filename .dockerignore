@@ -6,5 +6,11 @@
 bin
 coverage.txt
 
+# Local environment and secret files
+.env
+.env.*
+*.env
+!.env.example
+
 # Docs
 README.md
