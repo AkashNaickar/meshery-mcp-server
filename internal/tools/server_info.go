@@ -28,6 +28,8 @@ import (
 func Register(s *server.MCPServer) {
 	serverInfo := mcp.NewTool("server_info",
 		mcp.WithDescription("Return metadata about the Meshery MCP server."),
+		mcp.WithReadOnlyHintAnnotation(true),
+		mcp.WithDestructiveHintAnnotation(false),
 	)
 	s.AddTool(serverInfo, serverInfoHandler)
 }

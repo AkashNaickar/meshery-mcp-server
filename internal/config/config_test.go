@@ -52,3 +52,17 @@ func TestLoadDefaults(t *testing.T) {
 		t.Errorf("MeshServerURL = %q, want %q", cfg.MeshServerURL, DefaultMeshServerURL)
 	}
 }
+
+// TestLoadFromEnvironment verifies that Load reads non-empty values from the
+// environment instead of applying defaults.
+func TestLoadFromEnvironment(t *testing.T) {
+	t.Setenv("MESHERY_SERVER_URL", "https://example.meshery.io:9443")
+	t.Setenv("MESHERY_API_TOKEN", "test-token")
+	cfg := Load()
+	if cfg.MeshServerURL != "https://example.meshery.io:9443" {
+		t.Errorf("MeshServerURL = %q, want %q", cfg.MeshServerURL, "https://example.meshery.io:9443")
+	}
+	if cfg.MeshAPIToken != "test-token" {
+		t.Errorf("MeshAPIToken = %q, want %q", cfg.MeshAPIToken, "test-token")
+	}
+}
