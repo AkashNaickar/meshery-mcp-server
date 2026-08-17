@@ -21,11 +21,22 @@ import (
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
 
-// New creates an MCP server with all registered tools.
-func New() *server.MCPServer {
+// New creates an MCP server with all registered MCP surfaces.
+func New() (*server.MCPServer, error) {
 	s := server.NewMCPServer(version.Name, version.Version)
-	tools.Register(s)
-	return s
+
+	registry := NewRegistry(
+		RegistrantFunc(func(server *server.MCPServer) error {
+			tools.Register(server)
+			return nil
+		}),
+	)
+
+	if err := registry.RegisterAll(s); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 // Serve runs the MCP server over stdio until a client disconnects or the

@@ -28,8 +28,10 @@ import (
 // TestServerInfoTool verifies the server_info tool through the full
 // initialize, list tools, and call tool flow over an in-process client.
 func TestServerInfoTool(t *testing.T) {
-	s := New()
-
+	s, err := New()
+	if err != nil {
+		t.Fatalf("new server: %v", err)
+	}
 	mcpClient, err := client.NewInProcessClient(s)
 	if err != nil {
 		t.Fatalf("new in-process client: %v", err)

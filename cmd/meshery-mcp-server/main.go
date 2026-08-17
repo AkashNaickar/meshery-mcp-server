@@ -30,7 +30,11 @@ func main() {
 	cfg := config.Load()
 	log.Printf("starting %s %s (commit %s, Meshery Server: %s)", version.Name, version.Version, version.CommitSHA, cfg.RedactedURL())
 
-	srv := server.New()
+	srv, err := server.New()
+	if err != nil {
+		log.Fatalf("create MCP server: %v", err)
+	}
+
 	if err := server.Serve(srv); err != nil {
 		log.Fatalf("serve MCP server: %v", err)
 	}
