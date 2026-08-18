@@ -26,10 +26,10 @@ func New() (*server.MCPServer, error) {
 	s := server.NewMCPServer(version.Name, version.Version)
 
 	registry := NewRegistry(
-		RegistrantFunc(func(server *server.MCPServer) error {
+		Named("tools", RegistrantFunc(func(server *server.MCPServer) error {
 			tools.Register(server)
 			return nil
-		}),
+		})),
 	)
 
 	if err := registry.RegisterAll(s); err != nil {

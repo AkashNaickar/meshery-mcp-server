@@ -17,6 +17,7 @@ package server
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
@@ -53,27 +54,47 @@ func TestRegistryRegisterAllStopsOnError(t *testing.T) {
 
 	var calls []string
 	registry := NewRegistry(
-		RegistrantFunc(func(*mcpserver.MCPServer) error {
+		Named("tools", RegistrantFunc(func(*mcpserver.MCPServer) error {
 			calls = append(calls, "tools")
 			return nil
-		}),
-		RegistrantFunc(func(*mcpserver.MCPServer) error {
+		})),
+		Named("resources", RegistrantFunc(func(*mcpserver.MCPServer) error {
 			calls = append(calls, "resources")
 			return expectedErr
-		}),
-		RegistrantFunc(func(*mcpserver.MCPServer) error {
+		})),
+		Named("prompts", RegistrantFunc(func(*mcpserver.MCPServer) error {
 			calls = append(calls, "prompts")
 			return nil
-		}),
+		})),
 	)
 
 	err := registry.RegisterAll(s)
 	if !errors.Is(err, expectedErr) {
 		t.Fatalf("expected %v, got %v", expectedErr, err)
 	}
+	if !strings.Contains(err.Error(), "resources") {
+		t.Fatalf("expected error to name the failing surface, got %q", err)
+	}
 
 	expected := []string{"tools", "resources"}
 	if !reflect.DeepEqual(calls, expected) {
 		t.Fatalf("expected calls %v, got %v", expected, calls)
+	}
+}
+
+func TestRegistryRegisterAllNamesUnlabeledRegistrantByType(t *testing.T) {
+	s := mcpserver.NewMCPServer("test-server", "0.0.1")
+	expectedErr := errors.New("registration failed")
+
+	registry := NewRegistry(RegistrantFunc(func(*mcpserver.MCPServer) error {
+		return expectedErr
+	}))
+
+	err := registry.RegisterAll(s)
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf("expected %v, got %v", expectedErr, err)
+	}
+	if !strings.Contains(err.Error(), "RegistrantFunc") {
+		t.Fatalf("expected error to name the registrant type, got %q", err)
 	}
 }
