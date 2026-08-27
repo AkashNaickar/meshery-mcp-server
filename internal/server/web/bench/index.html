@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Architectural Ruler — 10-Metric Scorecard</title>
+<title>Architectural Ruler: 10-Metric Scorecard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 body{font-family:system-ui, sans-serif; max-width:1100px; margin:2rem auto; padding:0 1rem; line-height:1.5}
@@ -39,7 +39,10 @@ canvas{background:#fff; border:1px solid #eee; border-radius:8px; padding:1rem; 
 
 <div><h3>Threshold Pass Rate</h3><canvas id="passRate" height="220"></canvas></div>
 
-<div><h3>Micro-benchmark: Codec Throughput</h3><canvas id="benchChart" height="180"></canvas></div>
+<div class="grid">
+<div><h3>Micro-benchmark: Throughput</h3><canvas id="benchThroughput" height="220"></canvas></div>
+<div><h3>Micro-benchmark: Latency</h3><canvas id="benchLatency" height="220"></canvas></div>
+</div>
 
 <pre id="micro"></pre>
 
@@ -52,7 +55,7 @@ go run ./cmd/ruler/main.go
 # or with make
 make ruler
 make benchmark  # runs tests plus ruler</pre>
-<p>Source and dataset: <a href="https://github.com/AkashNaickar/meshery-mcp-server">AkashNaickar/meshery-mcp-server</a> — see <code>benchmark/scorecard.yaml</code> for per-metric notes and <code>docs/adr/0001-architecture-selection-and-performance-scorecard.md</code> for the decision.</p>
+<p>Source and dataset: <a href="https://github.com/AkashNaickar/meshery-mcp-server">AkashNaickar/meshery-mcp-server</a> , see <code>benchmark/scorecard.yaml</code> for per-metric notes and <code>docs/adr/0001-architecture-selection-and-performance-scorecard.md</code> for the decision.</p>
 </div>
 
 <p><a href="/">Back to Playground</a> | <a href="https://github.com/AkashNaickar/meshery-mcp-server">GitHub</a> | <a href="https://github.com/AkashNaickar/meshery-mcp-demo">POC Demo</a></p>
@@ -115,10 +118,15 @@ fetch("scorecard.json").then(r=>r.json()).then(sc=>{
   });
 
   const benchOps=340158, benchLat=2.94;
-  new Chart(document.getElementById("benchChart"), {
+  new Chart(document.getElementById("benchThroughput"), {
     type:"bar",
-    data:{labels:["Throughput ops/sec","Avg latency us/op"], datasets:[{label:"Measured", data:[benchOps, benchLat], backgroundColor:["#36a","#0a7"]}]},
-    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    data:{labels:["Throughput"], datasets:[{label:"ops/sec", data:[benchOps], backgroundColor:["#36a"]}]},
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, title:{display:true, text:"ops/sec"}}}}
+  });
+  new Chart(document.getElementById("benchLatency"), {
+    type:"bar",
+    data:{labels:["Avg latency"], datasets:[{label:"us/op", data:[benchLat], backgroundColor:["#0a7"]}]},
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, title:{display:true, text:"us/op"}}}}
   });
 }).catch(e=>{document.getElementById("micro").textContent="Failed to load scorecard.json: "+e;});
 </script>
