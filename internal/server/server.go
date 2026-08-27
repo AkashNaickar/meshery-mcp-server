@@ -16,8 +16,10 @@ package server
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -28,6 +30,9 @@ import (
 	"github.com/meshery-extensions/meshery-mcp-server/internal/tools"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
+
+//go:embed web
+var webFS embed.FS
 
 // New creates an MCP server with all registered MCP surfaces.
 func New() (*server.MCPServer, error) {
@@ -69,8 +74,16 @@ func serveHTTP(s *server.MCPServer, cfg *config.Config) error {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
-	// Serve bench dashboard static files from web/bench when present. Falls back to 404 if not built.
-	mux.Handle("/bench/", http.StripPrefix("/bench/", http.FileServer(http.Dir("web/bench"))))
+	// Serve bench dashboard from embedded web/bench when present, fallback to filesystem for local dev.
+	if benchFS, err := fs.Sub(webFS, "web/bench"); err == nil {
+		mux.Handle("/bench/", http.StripPrefix("/bench/", http.FileServer(http.FS(benchFS))))
+	} else {
+		mux.Handle("/bench/", http.StripPrefix("/bench/", http.FileServer(http.Dir("web/bench"))))
+	}
+	// Also serve root web playground at / if present.
+	if rootFS, err := fs.Sub(webFS, "web"); err == nil {
+		mux.Handle("/play/", http.StripPrefix("/play/", http.FileServer(http.FS(rootFS))))
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			http.Redirect(w, r, "/bench/", http.StatusFound)
