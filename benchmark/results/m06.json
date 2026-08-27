@@ -1,0 +1,1 @@
+{"derived_score":9,"id":"M06","launches":10,"measured_unit":"successes/10","measured_value":10,"notes":"Desktop stdio compatibility via 10 in-process MCP handshakes (Initialize+ListTools+CallTool).","successes":10}

@@ -3,43 +3,629 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meshery MCP Server — Live Playground</title>
+<title>Meshery MCP Server — Live Topology</title>
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://unpkg.com">
+<script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <style>
-body{font-family:system-ui, sans-serif; max-width:900px; margin:2rem auto; padding:0 1rem; line-height:1.6}
-pre{background:#f5f5f5; padding:1rem; overflow:auto; border-radius:6px}
-button{padding:0.6rem 1rem; margin:0.3rem; cursor:pointer}
-#log{white-space:pre-wrap; background:#0a0a0a; color:#aaffaa; padding:1rem; border-radius:6px; min-height:200px}
+:root{
+  --teal:#00B39F;
+  --teal-dark:#009485;
+  --teal-light:#e6f7f5;
+  --charcoal:#1e2a2f;
+  --slate:#6b7c83;
+  --bg:#f4f6f7;
+  --card:#ffffff;
+  --border:#e2e8ea;
+  --amber:#f59e0b;
+  --rose:#e11d48;
+  --radius:14px;
+  --shadow:0 8px 24px rgba(30,42,47,.08), 0 1px 3px rgba(30,42,47,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--charcoal);font:14px/1.5 ui-sans-system,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+a{color:var(--teal-dark)}
+h1,h2,h3{letter-spacing:-.02em;margin:0}
+header{
+  position:sticky;top:0;z-index:20;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+}
+.header-inner{max-width:1280px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:36px;height:36px;border-radius:10px;background:var(--teal);
+  display:grid;place-items:center;color:#fff;font-weight:800;letter-spacing:-.05em
+}
+.brand h1{font-size:18px;line-height:1}
+.brand p{margin:2px 0 0;color:var(--slate);font-size:12px}
+.nav{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.nav a, .btn{
+  appearance:none;border:1px solid var(--border);background:var(--card);
+  padding:8px 12px;border-radius:999px;font-weight:600;font-size:12px;
+  text-decoration:none;color:var(--charcoal);cursor:pointer;transition:.15s;
+}
+.nav a:hover,.btn:hover{border-color:var(--teal);transform:translateY(-1px)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-primary:hover{background:var(--teal-dark)}
+main{max-width:1280px;margin:18px auto;padding:0 20px 28px;display:grid;gap:16px}
+.grid{display:grid;grid-template-columns:320px 1fr 300px;gap:16px}
+@media(max-width:1060px){.grid{grid-template-columns:1fr} .side-order-2{order:2} .graph-order-1{order:1} .side-order-3{order:3}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-head h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate)}
+.badge{font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--teal-light);color:var(--teal-dark)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af;display:inline-block;margin-right:6px;box-shadow:0 0 0 0 rgba(0,179,159,.4)}
+.live-dot.live{background:var(--teal);animation:pulseDot 1.8s infinite}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(0,179,159,.45)} 70%{box-shadow:0 0 0 8px rgba(0,179,159,0)} 100%{box-shadow:0 0 0 0 rgba(0,179,159,0)}}
+.card-body{padding:14px 16px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{border:1px solid var(--border);border-radius:12px;padding:10px;background:linear-gradient(180deg,#fff,#fbfdfc)}
+.kpi strong{display:block;font-size:22px;line-height:1}
+.kpi span{color:var(--slate);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.segmented{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.segmented button{border:0;background:#fff;padding:7px 12px;font-weight:600;cursor:pointer}
+.segmented button.active{background:var(--teal);color:#fff}
+.field{display:grid;gap:6px;margin:10px 0}
+.field label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+.field select,.field input{border:1px solid var(--border);border-radius:10px;padding:9px 10px;background:#fff;font:inherit}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.timeline{font-size:12px;color:var(--slate);display:flex;align-items:center;gap:8px}
+.graph-wrap{position:relative}
+#cy{width:100%;height:560px;background:
+  radial-gradient(800px 400px at 20% 0%, rgba(0,179,159,.07), transparent 60%),
+  radial-gradient(600px 300px at 90% 20%, rgba(30,42,47,.04), transparent 60%),
+  #fff}
+.graph-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.82);backdrop-filter:blur(4px);z-index:2;transition:.2s}
+.graph-overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--slate)}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.legend i.deployment{background:var(--teal)}
+.legend i.replicaset{background:var(--charcoal)}
+.legend i.pod{background:#0ea5a0;border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+.legend i.edge{width:18px;height:3px;border-radius:3px;background:var(--teal)}
+.details{display:grid;gap:10px}
+.detail-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.detail-row:last-child{border:0}
+.tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:999px;border:1px solid var(--border)}
+.tag-running{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.tag-ready{background:var(--teal-light);color:var(--teal-dark)}
+.banner{padding:10px 12px;border-radius:10px;border:1px solid #fecaca;background:#fef2f2;color:#7f1d1d;font-size:13px;display:none}
+.banner.show{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.log{white-space:pre-wrap;background:#0f1417;color:#d1ffcf;padding:12px;border-radius:10px;min-height:120px;max-height:240px;overflow:auto;font-size:12px;line-height:1.6;border:1px solid #1f2a2e}
+.graph-actions{position:absolute;right:10px;top:10px;z-index:3;display:flex;gap:6px}
+.graph-actions button{width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow)}
+.helper{font-size:12px;color:var(--slate);background:var(--teal-light);border:1px solid #c9ebe7;padding:10px;border-radius:10px}
+.footer{max-width:1280px;margin:0 auto;padding:0 20px 30px;color:var(--slate);font-size:12px}
+.footer code{background:#fff;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
 </style>
 </head>
 <body>
-<h1>Meshery MCP Server — Live Playground</h1>
-<p>Try the server without cloning. This page talks to the hosted MCP endpoint over streamable HTTP.</p>
-<p><a href="/bench/">View Benchmark Scorecard</a> | <a href="https://github.com/meshery-extensions/meshery-mcp-server">GitHub</a></p>
-<button onclick="callTool('list_designs', {})">List Designs</button>
-<button onclick="callTool('server_info', {})">Server Info</button>
-<button onclick="readTopology()">Read Topology</button>
-<pre id="log">Ready. Click a button to call the MCP server.</pre>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark">◈</div>
+      <div>
+        <h1>Meshery MCP — Live Topology</h1>
+        <p>Deployment <span style="color:var(--teal);font-weight:700">→</span> ReplicaSet <span style="color:var(--teal);font-weight:700">→</span> Pods • <span class="mono">meshery://clusters/{id}/topology</span></p>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/bench/">Benchmark</a>
+      <a href="https://github.com/meshery-extensions/meshery-mcp-server" target="_blank" rel="noreferrer">GitHub</a>
+      <button class="btn" id="btn-health">Health</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="banner" class="banner" role="alert">
+    <span id="banner-text">Unable to reach topology stream.</span>
+    <button class="btn btn-primary" id="banner-retry">Retry</button>
+  </div>
+
+  <div class="grid">
+    <!-- Controls -->
+    <section class="card side-order-2">
+      <div class="card-head">
+        <h2>Cluster &amp; Scale</h2>
+        <span class="badge"><i id="live-dot" class="live-dot"></i><span id="live-label">connecting</span></span>
+      </div>
+      <div class="card-body">
+        <div class="kpis">
+          <div class="kpi"><span>Replicas</span><strong id="kpi-replicas">—</strong></div>
+          <div class="kpi"><span>Pods running</span><strong id="kpi-pods">—</strong></div>
+        </div>
+
+        <div class="field">
+          <label for="cluster">Cluster ID (resource URI)</label>
+          <select id="cluster">
+            <option value="local" selected>local — meshery://clusters/local/topology</option>
+            <option value="demo">demo</option>
+            <option value="prod">prod</option>
+          </select>
+          <div class="helper">The URI is templated as <span class="mono">meshery://clusters/{cluster_id}/topology</span>. Change the selector to test URI parsing.</div>
+        </div>
+
+        <div class="field">
+          <label>Replicas — animate like <span class="mono">kubectl scale</span></label>
+          <div class="controls">
+            <div class="segmented" role="group" aria-label="Replica count">
+              <button data-replicas="1">1</button>
+              <button data-replicas="2">2</button>
+              <button class="active" data-replicas="3">3</button>
+              <button data-replicas="4">4</button>
+            </div>
+            <button class="btn" id="btn-random">Randomize</button>
+          </div>
+          <div class="timeline"><span id="scale-hint">Tip: try <span class="mono">kubectl scale deploy/nginx --replicas=4</span> or POST /api/topology/scale</span></div>
+        </div>
+
+        <div class="controls">
+          <button class="btn btn-primary" id="btn-subscribe">Subscribe (MCP)</button>
+          <button class="btn" id="btn-read">Read via MCP</button>
+        </div>
+
+        <div class="field">
+          <label>MCP resource</label>
+          <div class="log mono" id="mcp-log">Ready. Graph is driven by <span class="mono">GET /api/topology</span> + <span class="mono">SSE /api/topology/stream</span> and mirrors the MCP <span class="mono">resources/read</span> + <span class="mono">resources/subscribe → resources/updated</span> flow.</div>
+        </div>
+
+        <div class="helper">
+          <strong>How live updates work</strong><br>
+          Browser holds an <span class="mono">EventSource</span> to <span class="mono">/api/topology/stream</span>. When the Store scales (via API or demo loop), the server broadcasts <span class="mono">event: topology</span> and the Go MCP server also emits <span class="mono">notifications/resources/updated</span> for subscribed clients — the graph pulses new pods accordingly.
+        </div>
+      </div>
+    </section>
+
+    <!-- Graph -->
+    <section class="card graph-wrap graph-order-1">
+      <div class="card-head">
+        <h2>Live Graph</h2>
+        <span class="badge" id="gen-badge">—</span>
+      </div>
+      <div style="position:relative">
+        <div id="cy" role="img" aria-label="Topology graph from Deployment to ReplicaSet to Pods"></div>
+        <div class="graph-actions">
+          <button id="btn-fit" title="Fit graph" aria-label="Fit graph">⤢</button>
+          <button id="btn-layout" title="Re-layout" aria-label="Re-layout">⟲</button>
+          <button id="btn-png" title="Export PNG" aria-label="Export PNG">⬇</button>
+        </div>
+        <div id="graph-overlay" class="graph-overlay">
+          <div style="text-align:center;display:grid;place-items:center;gap:10px;padding:20px">
+            <div class="spinner"></div>
+            <div style="font-weight:700">Loading topology…</div>
+            <div style="color:var(--slate);font-size:12px">Fetching <span class="mono">meshery://clusters/local/topology</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="legend" aria-hidden="true">
+          <span><i class="deployment"></i> Deployment</span>
+          <span><i class="replicaset"></i> ReplicaSet</span>
+          <span><i class="pod"></i> Pod</span>
+          <span><i class="edge"></i> manages</span>
+        </div>
+        <div style="margin-top:8px;color:var(--slate);font-size:12px">Layout: dagre (top→bottom). New pods get a teal pulse and slide-in; terminating pods fade out. Hover or tap a node for details.</div>
+      </div>
+    </section>
+
+    <!-- Details -->
+    <section class="card side-order-3">
+      <div class="card-head">
+        <h2>Selection &amp; Tools</h2>
+        <span class="badge mono" id="sel-kind">—</span>
+      </div>
+      <div class="card-body">
+        <div id="selection" class="details">
+          <div style="color:var(--slate)">Click a node to inspect. The graph mirrors exactly what <span class="mono">resources/read</span> returns.</div>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
+        <div class="field">
+          <label>Playground — MCP over streamable HTTP</label>
+          <div class="controls">
+            <button class="btn" onclick="callTool('server_info', {})">server_info</button>
+            <button class="btn" onclick="callTool('list_designs', {})">list_designs</button>
+            <button class="btn" onclick="readTopologyMCP()">Read Topology (MCP)</button>
+          </div>
+          <div id="play-log" class="log mono" style="max-height:160px">Ready.</div>
+        </div>
+        <div class="helper">Backend: Go <span class="mono">internal/topology.Store</span> + <span class="mono">internal/resources</span> (MCP template <span class="mono">meshery://clusters/{cluster_id}/topology</span>) with <span class="mono">resources/subscribe</span> poll-and-notify (2s) and <span class="mono">GET /api/topology/stream</span> SSE. Frontend: Cytoscape.js + dagre, #00B39F, responsive.</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="footer">
+  <div>Meshery branding: teal <code>#00B39F</code> • Graph: Deployment → ReplicaSet → Pods (3–4 pods) • Try: <code>curl -X POST /api/topology/scale -H 'Content-Type: application/json' -d '{"replicas":4}'</code> or scale from the UI — pods pulse on add.</div>
+</div>
+
 <script>
-const endpoint = "/mcp";
-async function callTool(name, args) {
-  const body = {jsonrpc:"2.0", id: Date.now(), method:"tools/call", params:{name, arguments: args}};
-  log("→ " + JSON.stringify(body, null, 2));
-  try {
-    const res = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
-    const j = await res.json();
-    log("← " + JSON.stringify(j, null, 2));
-  } catch(e){ log("Error: " + e); }
+const $ = (s)=>document.querySelector(s);
+const clusterSel = $('#cluster');
+const liveDot = $('#live-dot');
+const liveLabel = $('#live-label');
+const banner = $('#banner');
+const bannerText = $('#banner-text');
+const kpiReplicas = $('#kpi-replicas');
+const kpiPods = $('#kpi-pods');
+const genBadge = $('#gen-badge');
+const overlay = $('#graph-overlay');
+const mcpLog = $('#mcp-log');
+const playLog = $('#play-log');
+const selKind = $('#sel-kind');
+const selection = $('#selection');
+
+let cy=null;
+let topo=null;
+let prevPodIds=new Set();
+let sse=null;
+let retryTimer=null;
+let fetchAttempts=0;
+
+function setLive(state, text){
+  liveDot.classList.toggle('live', state==='live');
+  liveDot.style.background = state==='live' ? 'var(--teal)' : state==='error' ? 'var(--rose)' : '#9ca3af';
+  liveLabel.textContent = text;
 }
-async function readTopology(){
-  const body = {jsonrpc:"2.0", id: Date.now(), method:"resources/read", params:{uri:"meshery://clusters/local/topology"}};
-  log("→ " + JSON.stringify(body, null, 2));
-  try {
-    const res = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
-    const j = await res.json();
-    log("← " + JSON.stringify(j, null, 2));
-  } catch(e){ log("Error: " + e); }
+function showBanner(msg){
+  bannerText.textContent = msg;
+  banner.classList.add('show');
+  setLive('error','offline');
 }
-function log(m){ const el=document.getElementById("log"); el.textContent += "\n" + m; el.scrollTop=el.scrollHeight; }
+function hideBanner(){
+  banner.classList.remove('show');
+}
+
+function apiTopologyURL(clusterId){
+  return `/api/topology?clusterId=${encodeURIComponent(clusterId)}`;
+}
+function sseURL(clusterId){
+  return `/api/topology/stream?clusterId=${encodeURIComponent(clusterId)}`;
+}
+function resourceURI(clusterId){
+  return `meshery://clusters/${clusterId}/topology`;
+}
+
+async function fetchTopology(clusterId){
+  clusterId = clusterId || clusterSel.value || 'local';
+  overlay.classList.remove('hidden');
+  try{
+    const res = await fetch(apiTopologyURL(clusterId));
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    topo = data;
+    renderGraph(data);
+    hideBanner();
+    setLive('live','live');
+    fetchAttempts=0;
+    mcpLog.textContent = `GET ${apiTopologyURL(clusterId)} → ${data.components.length} components • evaluated=${data.evaluated}\n` + JSON.stringify(data,null,2).slice(0,1200);
+  }catch(e){
+    fetchAttempts++;
+    showBanner(`Failed to load topology (${e.message}). Retrying…`);
+    if(fetchAttempts<4) setTimeout(()=>fetchTopology(clusterId), 1200*fetchAttempts);
+  }finally{
+    overlay.classList.add('hidden');
+  }
+}
+
+function connectSSE(clusterId){
+  clusterId = clusterId || clusterSel.value || 'local';
+  if(sse){ try{sse.close();}catch{}; sse=null; }
+  setLive('connecting','connecting');
+  const url = sseURL(clusterId);
+  sse = new EventSource(url);
+  sse.addEventListener('topology', (ev)=>{
+    try{
+      const data = JSON.parse(ev.data);
+      topo = data;
+      renderGraph(data);
+      hideBanner();
+      setLive('live','live');
+      genBadge.textContent = new Date(data.generatedAt).toLocaleTimeString();
+    }catch(e){ console.error(e); }
+  });
+  sse.onopen = ()=> { hideBanner(); setLive('live','live'); };
+  sse.onerror = ()=>{
+    showBanner('SSE disconnected — retrying…');
+    try{sse.close();}catch{}
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(()=> connectSSE(clusterId), 2000);
+  };
+}
+
+function toElements(t){
+  const nodes = t.components.map(c=> ({
+    data:{ id:c.id, label:c.name, kind:c.kind, status:c.status||'', namespace:c.namespace||'', replicas:c.replicas??'' },
+    classes: c.kind.toLowerCase()
+  }));
+  const edges = t.relationships.map((r,i)=> ({
+    data:{ id:`e${i}-${r.from}-${r.to}`, source:r.from, target:r.to, type:r.type||'manages' }
+  }));
+  return [...nodes, ...edges];
+}
+
+function initCytoscape(elements){
+  const container = document.getElementById('cy');
+  cy = cytoscape({
+    container,
+    elements,
+    wheelSensitivity:0.2,
+    style:[
+      { selector:'node', style:{
+        'label':'data(label)',
+        'text-valign':'bottom','text-halign':'center','font-size':'11px','font-weight':'600',
+        'color':'#1e2a2f','text-margin-y':8,
+        'width':46,'height':46,'border-width':2,'border-color':'#fff',
+        'background-color':'#6b7c83','overlay-padding':'6px'
+      }},
+      { selector:'node.deployment', style:{
+        'shape':'round-rectangle','width':120,'height':44,'background-color':'#00B39F','border-color':'#0a7a6e','color':'#0f1417',
+        'text-valign':'center','text-halign':'center','font-size':'11px','font-weight':'800','text-margin-y':0
+      }},
+      { selector:'node.replicaset', style:{
+        'shape':'round-diamond','width':96,'height':44,'background-color':'#1e2a2f','color':'#0f1417','text-wrap':'wrap',
+        'background-color':'#eef2f3','border-color':'#1e2a2f'
+      }},
+      { selector:'node.pod', style:{
+        'shape':'ellipse','background-color':'#00B39F','border-color':'#fff','border-width':3,
+        'width':52,'height':52
+      }},
+      { selector:'node.pulse', style:{
+        'border-color':'#00e0c8','border-width':4,'background-color':'#14c8b8'
+      }},
+      { selector:'node:selected', style:{
+        'border-color':'#00B39F','border-width':4,'overlay-color':'#00B39F','overlay-opacity':0.12
+      }},
+      { selector:'edge', style:{
+        'width':2,'line-color':'#00B39F','target-arrow-color':'#00B39F','target-arrow-shape':'triangle',
+        'curve-style':'bezier','opacity':0.9
+      }},
+      { selector:'edge.manages', style:{ 'line-style':'solid' }},
+    ],
+    layout:{ name:'dagre', rankDir:'TB', nodeSep:28, rankSep:64, edgeSep:12, ranker:'tight-tree' }
+  });
+
+  cy.on('tap', 'node', (evt)=>{
+    const n = evt.target;
+    showSelection(n.data());
+  });
+  cy.on('tap', (evt)=>{
+    if(evt.target===cy) clearSelection();
+  });
+  // responsive
+  window.addEventListener('resize', ()=> cy && cy.resize());
+}
+
+function renderGraph(t){
+  if(!t || !t.components) return;
+  const replicas = t.components.find(c=>c.kind==='Deployment')?.replicas ?? t.components.filter(c=>c.kind==='Pod').length;
+  const podCount = t.components.filter(c=>c.kind==='Pod').length;
+  kpiReplicas.textContent = String(replicas);
+  kpiPods.textContent = String(podCount);
+  genBadge.textContent = new Date(t.generatedAt).toLocaleTimeString();
+
+  // Update segmented control active state
+  document.querySelectorAll('.segmented button').forEach(b=>{
+    const v = Number(b.dataset.replicas);
+    b.classList.toggle('active', v===podCount);
+  });
+
+  const elements = toElements(t);
+  const newPodIds = new Set(t.components.filter(c=>c.kind==='Pod').map(c=>c.id));
+
+  if(!cy){
+    initCytoscape(elements);
+    prevPodIds = newPodIds;
+    // initial pulse demo
+    cy.nodes('.pod').forEach(n=> pulseNode(n, false));
+    return;
+  }
+
+  // Diff update with animation
+  const existingIds = new Set(cy.nodes().map(n=> n.id()));
+  const incomingIds = new Set(elements.filter(e=> e.data && !e.data.source).map(e=> e.data.id));
+  // Remove nodes no longer present (scale down)
+  const toRemove = [...existingIds].filter(id=> !incomingIds.has(id));
+  if(toRemove.length){
+    const col = cy.collection(toRemove.map(id=> cy.getElementById(id)));
+    col.animate({ style:{opacity:0}}, {duration:320});
+    setTimeout(()=> { col.remove(); relayout(); }, 340);
+  }
+  // Add new nodes
+  const toAddNodes = elements.filter(e=> e.data && !e.data.source && !existingIds.has(e.data.id));
+  const toAddEdges = elements.filter(e=> e.data && e.data.source && cy.getElementById(e.data.id).empty());
+  if(toAddNodes.length || toAddEdges.length){
+    const added = cy.add([...toAddNodes, ...toAddEdges]);
+    added.style('opacity', 0);
+    added.animate({style:{opacity:1}}, {duration:340});
+    // pulse new pods
+    toAddNodes.filter(n=> n.data.kind==='Pod').forEach(n=>{
+      const node = cy.getElementById(n.data.id);
+      pulseNode(node, true);
+    });
+  }
+  // Update labels/status for existing nodes
+  t.components.forEach(c=>{
+    const n = cy.getElementById(c.id);
+    if(n && !n.empty()){
+      n.data('label', c.name);
+      n.data('status', c.status||'');
+      if(c.replicas!=null) n.data('replicas', c.replicas);
+    }
+  });
+
+  // Detect newly arrived pods via set diff for pulse
+  const justAdded = [...newPodIds].filter(id=> !prevPodIds.has(id));
+  justAdded.forEach(id=>{
+    const n = cy.getElementById(id);
+    if(n && !n.empty()) pulseNode(n, true);
+  });
+  prevPodIds = newPodIds;
+  relayout();
+  updateSelectionFromTopo();
+}
+
+function pulseNode(node, strong){
+  if(!node || node.empty()) return;
+  node.addClass('pulse');
+  let steps = strong ? 6 : 3;
+  let i=0;
+  const baseW = 52;
+  const tick = setInterval(()=>{
+    const scale = i%2===0 ? 1.16 : 1;
+    const w = Math.round(baseW*scale);
+    try{
+      node.style('width', w);
+      node.style('height', w);
+      node.style('background-color', i%2===0 ? '#0fd2be' : '#00B39F');
+    }catch{}
+    i++;
+    if(i>=steps){
+      clearInterval(tick);
+      try{
+        node.style('width', baseW);
+        node.style('height', baseW);
+        node.style('background-color', '#00B39F');
+      }catch{}
+      node.removeClass('pulse');
+    }
+  }, 220);
+}
+
+function relayout(){
+  if(!cy) return;
+  const layout = cy.layout({ name:'dagre', rankDir:'TB', nodeSep:28, rankSep:64, animate:true, animationDuration:420, fit:true, padding:24 });
+  layout.run();
+}
+
+function showSelection(d){
+  selKind.textContent = d.kind || '—';
+  selKind.className = 'tag ' + (d.status==='Running' ? 'tag-running' : d.kind==='Deployment' ? 'tag-ready':'tag');
+  selection.innerHTML = `
+    <div class="detail-row"><span class="mono" style="color:var(--slate)">Name</span><strong class="mono">${escapeHtml(d.label)}</strong></div>
+    <div class="detail-row"><span>Kind</span><span class="mono">${escapeHtml(d.kind)}</span></div>
+    <div class="detail-row"><span>ID</span><span class="mono" style="font-size:11px">${escapeHtml(d.id)}</span></div>
+    ${d.namespace?`<div class="detail-row"><span>Namespace</span><span class="mono">${escapeHtml(d.namespace)}</span></div>`:''}
+    ${d.status?`<div class="detail-row"><span>Status</span><span class="tag ${d.status==='Running'?'tag-running':'tag-ready'}">${escapeHtml(d.status)}</span></div>`:''}
+    ${d.replicas!=='' && d.replicas!=null?`<div class="detail-row"><span>Replicas</span><strong>${escapeHtml(String(d.replicas))}</strong></div>`:''}
+  `;
+}
+function clearSelection(){
+  selKind.textContent='—';
+  selection.innerHTML = `<div style="color:var(--slate)">Click a node to inspect. The graph mirrors exactly what <span class="mono">resources/read</span> returns.</div>`;
+}
+function updateSelectionFromTopo(){
+  if(!topo) return;
+  const sel = cy && cy.$(':selected');
+  if(sel && sel.length){
+    const d = sel[0].data();
+    showSelection(d);
+  }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Scale actions
+async function scaleTo(n){
+  const clusterId = clusterSel.value || 'local';
+  try{
+    const res = await fetch('/api/topology/scale', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({clusterId, replicas:n})
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(txt || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    topo=data; renderGraph(data);
+    playLog.textContent += `\n→ POST /api/topology/scale {replicas:${n}} → ${data.components.filter(c=>c.kind==='Pod').length} pods`;
+    playLog.scrollTop = playLog.scrollHeight;
+  }catch(e){
+    showBanner(`Scale failed: ${e.message}`);
+  }
+}
+
+clusterSel.addEventListener('change', ()=>{ fetchTopology(); connectSSE(); });
+document.querySelectorAll('.segmented button').forEach(b=>{
+  b.addEventListener('click', ()=> scaleTo(Number(b.dataset.replicas)));
+});
+$('#btn-random').addEventListener('click', ()=>{
+  const cur = topo ? topo.components.filter(c=>c.kind==='Pod').length : 3;
+  let n = cur===3?4:3;
+  if(Math.random()<0.2) n = 2+Math.floor(Math.random()*3);
+  scaleTo(n);
+});
+$('#btn-fit').addEventListener('click', ()=> cy && cy.fit(null, 24));
+$('#btn-layout').addEventListener('click', relayout);
+$('#btn-png').addEventListener('click', ()=>{
+  if(!cy) return;
+  const png = cy.png({ output:'blob', bg:'#ffffff', full:true, scale:2 });
+  png.then(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='topology.png'; a.click();
+    setTimeout(()=> URL.revokeObjectURL(url), 3000);
+  });
+});
+$('#banner-retry').addEventListener('click', ()=>{ hideBanner(); fetchTopology(); connectSSE(); });
+$('#btn-health').addEventListener('click', async()=>{
+  try{ const r=await fetch('/health'); const j=await r.json(); playLog.textContent += `\n← /health ${JSON.stringify(j)}`; }catch(e){playLog.textContent += `\nError health: ${e}`;}
+});
+$('#btn-read').addEventListener('click', ()=> readTopologyMCP());
+$('#btn-subscribe').addEventListener('click', ()=> subscribeMCP());
+
+// MCP JSON-RPC helpers (uses /mcp streamable HTTP)
+const mcpEndpoint = '/mcp';
+let mcpId=1;
+async function mcpCall(method, params){
+  const body = {jsonrpc:'2.0', id:mcpId++, method, params};
+  playLog.textContent += `\n→ ${JSON.stringify(body)}`;
+  playLog.scrollTop=playLog.scrollHeight;
+  try{
+    const res = await fetch(mcpEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const j = await res.json();
+    playLog.textContent += `\n← ${JSON.stringify(j,null,2)}`;
+    playLog.scrollTop=playLog.scrollHeight;
+    return j;
+  }catch(e){
+    playLog.textContent += `\nError: ${e}`;
+    throw e;
+  }
+}
+async function readTopologyMCP(){
+  const uri = resourceURI(clusterSel.value||'local');
+  await mcpCall('resources/read', {uri});
+}
+async function callTool(name, args){
+  await mcpCall('tools/call', {name, arguments: args});
+}
+async function subscribeMCP(){
+  const uri = resourceURI(clusterSel.value||'local');
+  const init = {jsonrpc:'2.0', id:mcpId++, method:'initialize', params:{protocolVersion:'2024-11-05', capabilities:{}, clientInfo:{name:'web-topology',version:'1.0.0'}}};
+  playLog.textContent += `\n→ ${JSON.stringify(init)}`;
+  try{
+    const r1 = await fetch(mcpEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(init)});
+    const j1 = await r1.json();
+    playLog.textContent += `\n← ${JSON.stringify(j1,null,2)}`;
+    await fetch(mcpEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})});
+    const sub = {jsonrpc:'2.0', id:mcpId++, method:'resources/subscribe', params:{uri}};
+    playLog.textContent += `\n→ ${JSON.stringify(sub)} (watch for notifications/resources/updated on the SSE transport)`;
+    const r2 = await fetch(mcpEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    const j2 = await r2.json();
+    playLog.textContent += `\n← ${JSON.stringify(j2,null,2)}`;
+  }catch(e){ playLog.textContent += `\nSubscribe error: ${e}`; }
+  playLog.scrollTop=playLog.scrollHeight;
+}
+
+// Boot
+fetchTopology();
+connectSSE();
 </script>
 </body>
 </html>

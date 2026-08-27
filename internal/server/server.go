@@ -27,7 +27,9 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/meshery-extensions/meshery-mcp-server/internal/config"
+	"github.com/meshery-extensions/meshery-mcp-server/internal/resources"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/tools"
+	"github.com/meshery-extensions/meshery-mcp-server/internal/topology"
 	"github.com/meshery-extensions/meshery-mcp-server/internal/version"
 )
 
@@ -36,12 +38,19 @@ var webFS embed.FS
 
 // New creates an MCP server with all registered MCP surfaces.
 func New() (*server.MCPServer, error) {
-	s := server.NewMCPServer(version.Name, version.Version)
+	s := server.NewMCPServer(version.Name, version.Version,
+		server.WithHooks(&server.Hooks{}),
+		server.WithResourceCapabilities(true, false),
+	)
 
+	store := topology.DefaultStore
 	registry := NewRegistry(
 		Named("tools", RegistrantFunc(func(server *server.MCPServer) error {
 			tools.Register(server)
 			return nil
+		})),
+		Named("resources", RegistrantFunc(func(server *server.MCPServer) error {
+			return resources.Register(server, store)
 		})),
 	)
 
@@ -66,6 +75,7 @@ func Serve(s *server.MCPServer, cfg *config.Config) error {
 
 func serveHTTP(s *server.MCPServer, cfg *config.Config) error {
 	mcpHandler := server.NewStreamableHTTPServer(s)
+	store := topology.DefaultStore
 
 	// mux serves health, bench dashboard, and MCP at /mcp
 	mux := http.NewServeMux()
@@ -74,23 +84,23 @@ func serveHTTP(s *server.MCPServer, cfg *config.Config) error {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+	// Topology REST + SSE for the live graph.
+	mux.HandleFunc("/api/topology", topologyHandlerHTTP(store))
+	mux.HandleFunc("/api/topology/stream", topologyStreamHandler(store))
+	mux.HandleFunc("/api/topology/scale", topologyScaleHandler(store))
+	mux.HandleFunc("/api/topology/", topologyHandlerHTTP(store))
 	// Serve bench dashboard from embedded web/bench when present, fallback to filesystem for local dev.
 	if benchFS, err := fs.Sub(webFS, "web/bench"); err == nil {
 		mux.Handle("/bench/", http.StripPrefix("/bench/", http.FileServer(http.FS(benchFS))))
 	} else {
 		mux.Handle("/bench/", http.StripPrefix("/bench/", http.FileServer(http.Dir("web/bench"))))
 	}
-	// Also serve root web playground at / if present.
+	// Serve the playground/topology graph at /.
 	if rootFS, err := fs.Sub(webFS, "web"); err == nil {
-		mux.Handle("/play/", http.StripPrefix("/play/", http.FileServer(http.FS(rootFS))))
+		mux.Handle("/", http.FileServer(http.FS(rootFS)))
+	} else {
+		mux.Handle("/", http.FileServer(http.Dir("web")))
 	}
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			http.Redirect(w, r, "/bench/", http.StatusFound)
-			return
-		}
-		http.NotFound(w, r)
-	})
 
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPAddr,

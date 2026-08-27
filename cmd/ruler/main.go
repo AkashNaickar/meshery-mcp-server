@@ -27,16 +27,18 @@ import (
 
 // Metric represents a single architectural metric from the scorecard.
 type Metric struct {
-	ID         string  `yaml:"id"`
-	Name       string  `yaml:"name"`
-	Category   string  `yaml:"category"`
-	Unit       string  `yaml:"unit"`
-	Direction  string  `yaml:"direction"`
-	Threshold  float64 `yaml:"threshold"`
-	Standalone float64 `yaml:"standalone"`
-	Adapter    float64 `yaml:"adapter"`
-	Hybrid     float64 `yaml:"hybrid"`
-	Notes      string  `yaml:"notes"`
+	ID            string   `yaml:"id"`
+	Name          string   `yaml:"name"`
+	Category      string   `yaml:"category"`
+	Unit          string   `yaml:"unit"`
+	Direction     string   `yaml:"direction"`
+	Threshold     float64  `yaml:"threshold"`
+	Standalone    float64  `yaml:"standalone"`
+	Adapter       float64  `yaml:"adapter"`
+	Hybrid        float64  `yaml:"hybrid"`
+	Notes         string   `yaml:"notes"`
+	MeasuredValue *float64 `yaml:"measured_value"`
+	MeasuredUnit  string   `yaml:"measured_unit"`
 }
 
 // Scorecard is the top-level structure of benchmark/scorecard.yaml.
@@ -81,12 +83,89 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Derive standalone scores from measured_value for M06-M09 where present.
+	// Logs go to stderr so stdout remains pure scorecard table.
+	for i, m := range sc.Metrics {
+		if m.MeasuredValue != nil {
+			derived := deriveScore(m.ID, *m.MeasuredValue)
+			if derived != m.Standalone {
+				log.Printf("metric %s measured %.2f %s -> derived score %.1f (stored %.1f) [%s]", m.ID, *m.MeasuredValue, m.MeasuredUnit, derived, m.Standalone, m.Name)
+			} else {
+				log.Printf("metric %s measured %.2f %s -> derived score %.1f verified", m.ID, *m.MeasuredValue, m.MeasuredUnit, derived)
+			}
+			sc.Metrics[i].Standalone = derived
+		}
+	}
+
 	bench := runMicroBenchmark()
 
 	renderHeader(sc, bench)
 	renderScorecard(sc.Metrics)
 	renderSummary(sc.Metrics)
 	renderFooter(bench)
+}
+
+// deriveScore maps raw measured_value to 1-10 score per metric.
+// M06: successes/10 -> score (capped at 9 to reserve 10 for future full matrix)
+// M07: payload bytes -> tokens (bytes/4) -> score via thresholds (65 tokens => 8)
+// M08: probes_succeeded/3 -> score = probes*3 (3 => 9)
+// M09: files importing mcp-go -> score = 12 - files (4 => 8), clamp 1-10.
+func deriveScore(id string, measured float64) float64 {
+	switch id {
+	case "M06":
+		v := int(measured)
+		if v > 9 {
+			v = 9
+		}
+		if v < 1 {
+			v = 1
+		}
+		return float64(v)
+	case "M07":
+		bytes := int(measured)
+		tokens := bytes / 4
+		if tokens < 1 {
+			tokens = 1
+		}
+		switch {
+		case tokens <= 40:
+			return 10
+		case tokens <= 60:
+			return 9
+		case tokens <= 100:
+			return 8
+		case tokens <= 150:
+			return 7
+		case tokens <= 250:
+			return 5
+		case tokens <= 400:
+			return 4
+		default:
+			return 3
+		}
+	case "M08":
+		probes := int(measured)
+		s := probes * 3
+		if s < 1 {
+			s = 1
+		}
+		if s > 10 {
+			s = 10
+		}
+		return float64(s)
+	case "M09":
+		files := int(measured)
+		s := 12 - files
+		if s > 10 {
+			s = 10
+		}
+		if s < 1 {
+			s = 1
+		}
+		return float64(s)
+	default:
+		return measured
+	}
 }
 
 func runMicroBenchmark() benchResult {

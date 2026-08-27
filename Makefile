@@ -56,6 +56,31 @@ lint:
 ruler:
 	$(GO) run ./cmd/ruler/main.go
 
+## Run M06 Desktop stdio Compatibility experiment (success rate out of 10 launches).
+.PHONY: bench-m06
+bench-m06:
+	$(GO) run ./benchmark/experiments/m06
+
+## Run M07 Context Token Bloat experiment (payload bytes/token count).
+.PHONY: bench-m07
+bench-m07:
+	$(GO) run ./benchmark/experiments/m07
+
+## Run M08 Blast Radius experiment (uptime after Meshery kill).
+.PHONY: bench-m08
+bench-m08:
+	$(GO) run ./benchmark/experiments/m08
+
+## Run M09 Spec Agility experiment (files changed on SDK bump).
+.PHONY: bench-m09
+bench-m09:
+	$(GO) run ./benchmark/experiments/m09
+
+## Run all measured experiments for M06-M09.
+.PHONY: experiments
+experiments: bench-m06 bench-m07 bench-m08 bench-m09
+	@echo "All experiments completed. Results in benchmark/results/. See benchmark/scorecard.yaml measured_value."
+
 ## Run tests and the architectural ruler.
 .PHONY: benchmark
 benchmark: test ruler

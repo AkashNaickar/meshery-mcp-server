@@ -1,0 +1,1 @@
+{"derived_score":9,"id":"M08","measured_unit":"probes_succeeded/3","measured_value":3,"notes":"Isolation after Meshery unreachable (invalid URL); server_info remains responsive with -32001 degradation not crash.","probes":3,"successes":3,"uptime":1}

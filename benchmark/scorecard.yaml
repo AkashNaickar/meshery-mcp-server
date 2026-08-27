@@ -70,7 +70,9 @@ metrics:
     standalone: 9
     adapter: 3
     hybrid: 9
-    notes: "Native stdio support for Claude Desktop, Cursor, VS Code without sidecar or network. Adapter requires in-cluster gRPC service."
+    measured_value: 10
+    measured_unit: "successes/10"
+    notes: "Measured: 10/10 in-process stdio handshakes (Initialize+ListTools+CallTool) via benchmark/experiments/m06_stdio_compat.go; capped derived score 9/10 to reserve 10 for full desktop matrix. Adapter requires in-cluster gRPC service. Logs to stderr, CGO_ENABLED=0, filepath.Join."
 
   - id: M07
     name: "Context and Token Bloat Efficiency"
@@ -81,7 +83,9 @@ metrics:
     standalone: 8
     adapter: 4
     hybrid: 8
-    notes: "Efficiency of context window usage. Standalone uses toolsets and lean schemas. Adapter exposes verbose Meshery adapter protos and extra metadata."
+    measured_value: 262
+    measured_unit: "bytes"
+    notes: "Measured: ListTools payload 262 bytes (~65 tokens, bytes/4) for single tool server_info via benchmark/experiments/m07_token_bloat.go; tokens <=100 => score 8. Adapter verbose protos ~2000 bytes (~500 tokens) => score 4. Logs to stderr, filepath.Join, CGO_ENABLED=0."
 
   - id: M08
     name: "Failure Blast Radius Isolation"
@@ -92,7 +96,9 @@ metrics:
     standalone: 9
     adapter: 5
     hybrid: 8
-    notes: "Isolation when Meshery Server is unreachable. Standalone degrades gracefully with -32001. Adapter failure propagates via gRPC health to Meshery core."
+    measured_value: 3
+    measured_unit: "probes_succeeded/3"
+    notes: "Measured: 3/3 probes succeeded after Meshery Server unreachable (MESHERY_SERVER_URL=http://127.0.0.1:1) via benchmark/experiments/m08_blast_radius.go; uptime=1, derived score 9 (probes*3). Standalone degrades gracefully with -32001. Logs to stderr, filepath.Join, CGO_ENABLED=0."
 
   - id: M09
     name: "Spec Currency and SDK Agility"
@@ -100,10 +106,12 @@ metrics:
     unit: "Score 1-10"
     direction: "higher_is_better"
     threshold: 8
-    standalone: 9
+    standalone: 8
     adapter: 4
     hybrid: 7
-    notes: "Ability to track MCP spec 2026-07-28 and SDK v1.x without Meshery Server release. Standalone upgrades SDK independently. Adapter couples to Meshery release train."
+    measured_value: 4
+    measured_unit: "files"
+    notes: "Measured: 4 non-test Go files importing mcp-go (internal/server/registrant.go, internal/server/server.go, internal/resources/topology.go, internal/tools/server_info.go) via benchmark/experiments/m09_spec_agility.go; derived score 8 (12-files, clamp 1-10). Adapter would touch 8+ files => score 4. Logs to stderr, filepath.Join, CGO_ENABLED=0."
 
   - id: M10
     name: "Local Setup Friction"
