@@ -28,6 +28,12 @@ canvas{background:#fff; border:1px solid #eee; border-radius:8px; padding:1rem; 
 
 <div class="kpi" id="kpi"></div>
 
+<table id="scorecard">
+<thead><tr><th>ID</th><th>Metric</th><th>Unit</th><th>Threshold</th><th>Standalone</th><th>Adapter</th><th>Hybrid</th><th>Superiority</th></tr></thead>
+<tbody></tbody>
+</table>
+<p>Superiority is standalone advantage over adapter. For lower_is_better: (adapter - standalone)/adapter, for higher_is_better: (standalone - adapter)/standalone.</p>
+
 <div class="grid">
 <div><h3>Radar: Standalone vs Adapter vs Hybrid</h3><canvas id="radar" height="380"></canvas></div>
 <div><h3>Latency and Resource Comparison</h3><canvas id="bars" height="380"></canvas></div>
@@ -37,11 +43,6 @@ canvas{background:#fff; border:1px solid #eee; border-radius:8px; padding:1rem; 
 
 <div><h3>Micro-benchmark: Codec Throughput</h3><canvas id="benchChart" height="180"></canvas></div>
 
-<table id="scorecard">
-<thead><tr><th>ID</th><th>Metric</th><th>Unit</th><th>Threshold</th><th>Standalone</th><th>Adapter</th><th>Hybrid</th><th>Superiority</th></tr></thead>
-<tbody></tbody>
-</table>
-<p>Superiority is standalone advantage over adapter. For lower_is_better: (adapter - standalone)/adapter, for higher_is_better: (standalone - adapter)/standalone.</p>
 <pre id="micro"></pre>
 <p><a href="/">Back to Playground</a> | <a href="https://github.com/AkashNaickar/meshery-mcp-server">GitHub</a> | <a href="https://github.com/AkashNaickar/meshery-mcp-demo">POC Demo</a></p>
 <script>
@@ -58,7 +59,6 @@ fetch("scorecard.json").then(r=>r.json()).then(sc=>{
     if(!breach(m.adapter)) passA++;
     if(!breach(m.hybrid)) passH++;
     labels.push(m.id);
-    // Normalize to 0-10 for radar: invert lower_is_better so higher is better on radar
     const norm = (v)=>{
       if(m.direction==="lower_is_better"){ const max=Math.max(m.standalone,m.adapter,m.hybrid,m.threshold*1.5); return Math.max(0,10*(1 - v/max));}
       return Math.min(10, (v/10)*10);
@@ -79,7 +79,6 @@ fetch("scorecard.json").then(r=>r.json()).then(sc=>{
   `;
   document.getElementById("micro").textContent = `Scorecard: ${sc.title} v${sc.version} | ${sc.spec}\nAverage standalone superiority: ${avgSup}%\nMeasured via make ruler with 50k JSON-RPC round-trips. See benchmark/scorecard.yaml notes per metric.`;
 
-  // Radar: normalized 0-10
   new Chart(document.getElementById("radar"), {
     type:"radar",
     data:{labels, datasets:[
@@ -90,7 +89,6 @@ fetch("scorecard.json").then(r=>r.json()).then(sc=>{
     options:{scales:{r:{min:0,max:10, ticks:{stepSize:2}}}, plugins:{legend:{position:"bottom"}}}
   });
 
-  // Bars: raw latency and resource values for M01-M05 and M10
   const barLabels=sc.metrics.slice(0,5).map(m=>m.id).concat(["M10"]);
   const barStand=sc.metrics.slice(0,5).map(m=>m.standalone).concat([sc.metrics[9].standalone]);
   const barAdapt=sc.metrics.slice(0,5).map(m=>m.adapter).concat([sc.metrics[9].adapter]);
@@ -105,15 +103,12 @@ fetch("scorecard.json").then(r=>r.json()).then(sc=>{
     options:{plugins:{legend:{position:"bottom"}}, scales:{y:{beginAtZero:true}}}
   });
 
-  // Pass rate doughnut
   new Chart(document.getElementById("passRate"), {
     type:"bar",
     data:{labels:["Standalone","Adapter","Hybrid"], datasets:[{label:"Threshold pass", data:[passS,passA,passH], backgroundColor:["#0a7","#c33","#36a"]}]},
     options:{indexAxis:"y", scales:{x:{min:0,max:10}}, plugins:{legend:{display:false}}}
   });
 
-  // Micro-benchmark chart from make ruler header values embedded as constants for now, will be replaced by live bench JSON later
-  // For now show throughput as measured 340k ops/sec from last run
   const benchOps=340158, benchLat=2.94;
   new Chart(document.getElementById("benchChart"), {
     type:"bar",
