@@ -51,6 +51,15 @@ fmt:
 lint:
 	golangci-lint run --timeout=10m
 
+## Run the architectural ruler (10-metric scorecard + micro-benchmark).
+.PHONY: ruler
+ruler:
+	$(GO) run ./cmd/ruler/main.go
+
+## Run tests and the architectural ruler.
+.PHONY: benchmark
+benchmark: test ruler
+
 ## Remove build artifacts.
 clean:
 	rm -rf $(BIN_DIR) coverage.txt
