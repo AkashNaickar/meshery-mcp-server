@@ -70,9 +70,9 @@
       "unit": "Score 1-10",
       "direction": "higher_is_better",
       "threshold": 8,
-      "standalone": 10,
-      "adapter": 1,
-      "hybrid": 10,
+      "standalone": 9,
+      "adapter": 3,
+      "hybrid": 9,
       "notes": "Native stdio support for Claude Desktop, Cursor, VS Code without sidecar or network. Adapter requires in-cluster gRPC service."
     },
     {
@@ -82,9 +82,9 @@
       "unit": "Score 1-10",
       "direction": "higher_is_better",
       "threshold": 8,
-      "standalone": 9,
-      "adapter": 3,
-      "hybrid": 9,
+      "standalone": 8,
+      "adapter": 4,
+      "hybrid": 8,
       "notes": "Efficiency of context window usage. Standalone uses toolsets and lean schemas. Adapter exposes verbose Meshery adapter protos and extra metadata."
     },
     {
@@ -94,8 +94,8 @@
       "unit": "Score 1-10",
       "direction": "higher_is_better",
       "threshold": 8,
-      "standalone": 10,
-      "adapter": 4,
+      "standalone": 9,
+      "adapter": 5,
       "hybrid": 8,
       "notes": "Isolation when Meshery Server is unreachable. Standalone degrades gracefully with -32001. Adapter failure propagates via gRPC health to Meshery core."
     },
@@ -106,8 +106,8 @@
       "unit": "Score 1-10",
       "direction": "higher_is_better",
       "threshold": 8,
-      "standalone": 10,
-      "adapter": 3,
+      "standalone": 9,
+      "adapter": 4,
       "hybrid": 7,
       "notes": "Ability to track MCP spec 2026-07-28 and SDK v1.x without Meshery Server release. Standalone upgrades SDK independently. Adapter couples to Meshery release train."
     },

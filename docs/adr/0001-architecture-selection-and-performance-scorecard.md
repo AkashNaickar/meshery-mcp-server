@@ -70,17 +70,17 @@ All values are rated baselines on Go 1.26.0, linux/amd64, CGO_ENABLED=0. See `be
 | M03 | Cold-Start Initialization Time      | ms         | lower is better   | 100       | 18         | 3200    | 150    | 99.4%        |
 | M04 | Idle RSS Memory Overhead            | MB         | lower is better   | 25        | 12         | 48      | 18     | 75.0%        |
 | M05 | Static Binary Weight (amd64)        | MB         | lower is better   | 20        | 14         | 38      | 22     | 63.2%        |
-| M06 | Desktop stdio Compatibility         | Score 1-10 | higher is better  | 8         | 10         | 1       | 10     | 90.0%        |
-| M07 | Context and Token Bloat Efficiency  | Score 1-10 | higher is better  | 8         | 9          | 3       | 9      | 66.7%        |
-| M08 | Failure Blast Radius Isolation      | Score 1-10 | higher is better  | 8         | 10         | 4       | 8      | 60.0%        |
-| M09 | Spec Currency and SDK Agility       | Score 1-10 | higher is better  | 8         | 10         | 3       | 7      | 70.0%        |
+| M06 | Desktop stdio Compatibility         | Score 1-10 | higher is better  | 8         | 9          | 3       | 9      | 66.7%        |
+| M07 | Context and Token Bloat Efficiency  | Score 1-10 | higher is better  | 8         | 8          | 4       | 8      | 50.0%        |
+| M08 | Failure Blast Radius Isolation      | Score 1-10 | higher is better  | 8         | 9          | 5       | 8      | 44.4%        |
+| M09 | Spec Currency and SDK Agility       | Score 1-10 | higher is better  | 8         | 9          | 4       | 7      | 55.6%        |
 | M10 | Local Setup Friction                | Minutes    | lower is better   | 5         | 1          | 15      | 3      | 93.3%        |
 
 `* Superiority = standalone advantage over adapter. For lower_is_better: (adapter - standalone) / adapter * 100. For higher_is_better: (standalone - adapter) / standalone * 100.`
 
-**Summary:** Standalone wins 10 of 10 metrics, passes all 10 thresholds. Adapter passes 0 of 10. Hybrid passes 8 of 10 and is the second choice where standalone is unavailable.
+**Summary:** Standalone wins 10 of 10 metrics, passes all 10 thresholds. Adapter passes 0 of 10. Hybrid passes 7 of 10 and is the second choice where standalone is unavailable.
 
-**Average standalone superiority over adapter: 80.2 percent.**
+**Average standalone superiority over adapter: about 73 percent as calculated by `make ruler`.**
 
 ### How the Numbers Were Produced
 
