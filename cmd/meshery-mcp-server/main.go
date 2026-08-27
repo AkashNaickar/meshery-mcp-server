@@ -15,6 +15,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -27,15 +29,25 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.LUTC)
 	log.SetOutput(os.Stderr)
 
+	transport := flag.String("transport", "", "MCP transport: stdio, http, or sse")
+	port := flag.Int("port", 0, "Port for http/sse transport")
+	flag.Parse()
+
 	cfg := config.Load()
-	log.Printf("starting %s %s (commit %s, Meshery Server: %s)", version.Name, version.Version, version.CommitSHA, cfg.RedactedURL())
+	if *transport != "" {
+		cfg.Transport = *transport
+	}
+	if *port != 0 {
+		cfg.HTTPAddr = fmt.Sprintf("0.0.0.0:%d", *port)
+	}
+	log.Printf("starting %s %s (commit %s, Meshery Server: %s, transport: %s, addr: %s)", version.Name, version.Version, version.CommitSHA, cfg.RedactedURL(), cfg.Transport, cfg.HTTPAddr)
 
 	srv, err := server.New()
 	if err != nil {
 		log.Fatalf("create MCP server: %v", err)
 	}
 
-	if err := server.Serve(srv); err != nil {
+	if err := server.Serve(srv, cfg); err != nil {
 		log.Fatalf("serve MCP server: %v", err)
 	}
 }

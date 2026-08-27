@@ -22,6 +22,8 @@ import (
 const (
 	// DefaultMeshServerURL is the default base URL of the Meshery Server REST API.
 	DefaultMeshServerURL = "http://localhost:9081"
+	// DefaultHTTPAddr is the default address for the HTTP/SSE transport.
+	DefaultHTTPAddr = "0.0.0.0:8080"
 )
 
 // Config holds runtime configuration for the Meshery MCP server.
@@ -30,13 +32,26 @@ type Config struct {
 	MeshServerURL string
 	// MeshAPIToken is an optional token used to authenticate with the Meshery Server API.
 	MeshAPIToken string
+	// Transport selects the MCP transport: stdio, http, or sse.
+	Transport string
+	// HTTPAddr is the listen address for the http/sse transport.
+	HTTPAddr string
 }
 
 // Load reads configuration from the environment, applying defaults where unset.
 func Load() *Config {
+	httpAddr := envOr("MESHERY_MCP_HTTP_ADDR", DefaultHTTPAddr)
+	// Render and some PaaS inject PORT. Honor it if HTTPAddr is default and PORT is set.
+	if httpAddr == DefaultHTTPAddr {
+		if port := os.Getenv("PORT"); port != "" {
+			httpAddr = "0.0.0.0:" + port
+		}
+	}
 	return &Config{
 		MeshServerURL: envOr("MESHERY_SERVER_URL", DefaultMeshServerURL),
 		MeshAPIToken:  os.Getenv("MESHERY_API_TOKEN"),
+		Transport:     envOr("MESHERY_MCP_TRANSPORT", "stdio"),
+		HTTPAddr:      httpAddr,
 	}
 }
 

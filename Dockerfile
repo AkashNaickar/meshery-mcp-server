@@ -36,7 +36,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/meshery-mcp-server /meshery-mcp-server
+COPY --from=build /src/web /web
 
 USER nonroot:nonroot
+
+EXPOSE 8080
 
 ENTRYPOINT ["/meshery-mcp-server"]
